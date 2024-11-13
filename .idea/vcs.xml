@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/CLCastles" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/CLStub" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/CLSunmi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/CLVerifone" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/FBs" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/NucleusPay" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/NucleusPay/PA/submodules/cl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/NucleusPay/PA/submodules/fb" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Others/AIDLClient" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Others/AIDLServer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Others/EmailTest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/PIA" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/PIA/submodules/cl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/PIA/submodules/fb" vcs="Git" />
+  </component>
+</project>
