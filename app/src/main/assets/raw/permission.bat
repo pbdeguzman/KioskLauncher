@@ -1,0 +1,1 @@
+adb shell pm grant com.priv.upakiosk android.permission.WRITE_SECURE_SETTINGS

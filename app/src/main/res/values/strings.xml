@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">UPA Kiosk Launcher</string>
+    <string name="nav_open">Open</string>
+    <string name="nav_close">Close</string>
+    <string name="permission">Permission required</string>
+    <string name="write_secure_settings">Allow WRITE_SECURE_SETTINGS permission to continue.</string>
+    <string name="OPEN_SETTING_SEQUENCE">UUDDLRLR</string>
+    <string name="STANDARD_MODE_SEQUENCE">RLRLDDUU</string>
+</resources>

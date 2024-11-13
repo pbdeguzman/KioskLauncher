@@ -1,0 +1,10 @@
+[
+  {
+    "Package": "com.global.integrated",
+    "Name": "UPA"
+  },
+  {
+    "Package": "com.global.tms",
+    "Name": "UDS Downloader"
+  }
+]

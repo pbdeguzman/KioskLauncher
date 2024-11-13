@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="HardcodedText">
+
+    <item android:title="Device Operating Mode">
+        <menu>
+            <item
+                android:id="@+id/nav_mode_standard"
+                android:title="Standard Mode"/>
+
+            <item
+                android:id="@+id/nav_mode_kiosk"
+                android:title="Kiosk Mode"/>
+
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/nav_settings"
+        android:title="System Settings" />
+</menu>
