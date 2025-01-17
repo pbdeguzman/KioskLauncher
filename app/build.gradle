@@ -2,33 +2,92 @@ plugins {
     id 'com.android.application'
 }
 
+def propertiesFile = rootProject.file('app/keys.properties')
+def keyProperties = new Properties()
+keyProperties.load(new FileInputStream(propertiesFile))
+
 android {
     namespace 'com.priv.upakiosk'
-    compileSdk 34
+    compileSdk 33
 
     defaultConfig {
         applicationId 'com.priv.upakiosk'
-        minSdk 27
-        targetSdk 34
+        targetSdk 33
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
+        signingConfig signingConfigs.debug
+        splits {
+            abi {
+                enable true
+                reset()
+                include 'armeabi-v7a'
 
+                universalApk false
+            }
+        }
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file(keyProperties['STORE_FILE'])
+            storePassword keyProperties['STORE_PASSWORD']
+            keyAlias keyProperties['KEY_ALIAS']
+            keyPassword keyProperties['KEY_PASSWORD']
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            versionNameSuffix ".release"
+        }
+
+        debug {
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules-debug.pro'
+            minifyEnabled false
+            testCoverageEnabled true
+            signingConfig signingConfigs.debug
+            versionNameSuffix ".debug"
         }
     }
+
+    sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/'] } }
+
+    flavorDimensions "vendor"
+    productFlavors {
+        // VENDOR
+        Sunmi_ {
+            dimension "vendor"
+            versionNameSuffix "-Sunmi"
+            minSdk 22
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    variantFilter { variant ->
+        def needed = variant.name in [
+                'Sunmi_Debug',
+                'Sunmi_Release',
+        ]
+        setIgnore(!needed)
+    }
+
+    android.applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "UPA-Kiosk-${versionName}.apk"
+        }
+    }
 }
 
 dependencies {
+    implementation fileTree(include: ['*.jar'], dir:'libs')
 
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -40,25 +99,31 @@ dependencies {
 
     implementation (platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
 
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    if (findProject(':CompatibilityLayer')) {
+        api project(':CompatibilityLayer')
+    } else {
+        debugImplementation ('com.global.cl:CompatibilityLayer-debug:1.0@aar') {
+            transitive = true;
+        }
+        releaseImplementation ('com.global.cl:CompatibilityLayer-release:1.0@aar') {
+            transitive = true;
+        }
+    }
 }
 
-subprojects {
+allprojects {
     afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            android {
-                compileSdk = 34
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
-                if (project.plugins.hasPlugin("kotlin-android"))
-                    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                        kotlinOptions.jvmTarget = "17"
-                    }
-            }
+        android.applicationVariants.all {
+            variant ->
+                task("${variant.name}") {}
+                tasks."generate${variant.name.capitalize()}Resources".dependsOn("${variant.name}")
         }
     }
 }

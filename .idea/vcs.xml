@@ -16,5 +16,7 @@
     <mapping directory="$PROJECT_DIR$/PIA" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/PIA/submodules/cl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/PIA/submodules/fb" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/cl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/submodules/fb" vcs="Git" />
   </component>
 </project>

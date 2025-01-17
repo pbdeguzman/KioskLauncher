@@ -6,4 +6,9 @@
     <string name="write_secure_settings">Allow WRITE_SECURE_SETTINGS permission to continue.</string>
     <string name="OPEN_SETTING_SEQUENCE">UUDDLRLR</string>
     <string name="STANDARD_MODE_SEQUENCE">RLRLDDUU</string>
+    <string name="change_default_home_dialog_proceed">Proceed</string>
+    <string name="change_default_home_dialog_cancel">Cancel</string>
+    <string name="change_default_home_dialog_body_settings_tts">TTS</string>
+    <string name="change_default_home_dialog_body_settings">Please set the UPA Kiosk Launcher as you default home screen. \n\nDo you want to continue?</string>
+    <string name="change_default_home_dialog_body">Dialog Body</string>
 </resources>

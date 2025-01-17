@@ -1,16 +1,24 @@
 pluginManagement {
     repositories {
+        gradlePluginPortal()
         google()
         mavenCentral()
-        gradlePluginPortal()
+        mavenLocal()
     }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google()
         mavenCentral()
+        google()
+        mavenLocal()
     }
 }
 rootProject.name = "UPAKiosk"
 include ':app'
+
+/***
+ * COMPATIBILITY LAYER
+ */
+include ':CompatibilityLayer'
+project(':CompatibilityLayer').projectDir = new File('submodules/cl')

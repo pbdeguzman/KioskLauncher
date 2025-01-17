@@ -3,14 +3,13 @@ package com.priv.upakiosk;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
@@ -22,15 +21,21 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.global.cl.kiosk.IKioskCallback;
+import com.global.cl.kiosk.Kiosk;
+import com.global.cl.kiosk.KioskError;
+import com.global.cl.kiosk.KioskKey;
+import com.global.cl.platform.IPlatformCallback;
+import com.global.cl.platform.PlatformError;
+import com.global.cl.platform.PlatformKey;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,11 +50,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    static final String TAG = "[NAAT-1294]";
+    static final String TAG = "UPA KIOSK";
     private static final int MAX_CHAR_LIMIT = 100;
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
@@ -61,36 +68,32 @@ public class MainActivity extends AppCompatActivity {
     final int WRITE_EXTERNAL_STORAGE_CODE = 1001;
     final int WRITE_SECURE_SETTINGS_CODE = 1002;
 
+    //FLAG FOR HIDE NAVIGATION BAR ITEMS
+    final int STATUS_BAR_DISABLE_HOME = 0x00200000; //hide home key
+    final int STATUS_BAR_DISABLE_BACK = 0x00400000; //hide back key
+    final int STATUS_BAR_DISABLE_RECENT = 0x01000000; //hide recent key
+
     private int REQUESTED_MODE = 1;
     final int MODE_STANDARD = 1;
     final int MODE_MERCHANT = 2;
     final int MODE_KIOSK    = 3;
 
-    final String UPA_APP = "UPA";
-    final String UPA_PACKAGE = "com.global.integrated";
-    final String UDS_APP = "UDS Downloader";
-    final String UDS_PACKAGE = "com.global.tms";
-
-    public DrawerLayout drawerLayout;
-    public ActionBarDrawerToggle actionBarDrawerToggle;
-
     private RecyclerView rvAppIcons;
     private View mainLayout;
     private SwipeRefreshLayout refreshLayout;
 
-    boolean tapUp = false, tapDown = false, tapLeft = false, tapRight = false;
-
     private String touchSequence = "";
     Context context;
+    public boolean sdkInitialized = false;
+    Kiosk kiosk;
 
-    @SuppressLint("NonConstantResourceId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         context = getApplicationContext();
-
+        kiosk = new Kiosk();
         mainLayout = findViewById(R.id.mainLayout);
         rvAppIcons = findViewById(R.id.rvAppIcons);
         refreshLayout = findViewById(R.id.refreshLayout);
@@ -101,33 +104,125 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedAppIcons();
         });
 
-        // Check if the application is already the default launcher
-        if (!isMyLauncherDefault()) {
-            // Create an intent with the CLEAR_TOP flag
-            Intent intent = new Intent(Intent.ACTION_MAIN);
-            intent.addCategory(Intent.CATEGORY_HOME);
-            intent.addCategory(Intent.CATEGORY_DEFAULT);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-            // Start the intent
-            startActivity(intent);
-            finish();
+        if (!isMyAppLauncherDefault()) {
+            Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
+            new SetDefaultLauncher(this).launchHomeOrClearDefaultsDialog();
+        } else {
+            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
         }
+        //Hide Navigation Icons
 
-        //Set Device Operating Mode to KIOSK MODE
-        try {
-            if (getDeviceOperatingMode() != MODE_KIOSK) {
-                REQUESTED_MODE = MODE_KIOSK;
-                checkPermission(REQUESTED_MODE);
-            } else {
-                Log.d(TAG, "Device Operating Mode is already on KIOSK MODE");
-            }
-        } catch (Settings.SettingNotFoundException e) {
-            Log.d(TAG, "Error: " + e.getMessage());
-        }
+        Map<KioskKey, Object> parameterMap = new HashMap<>();
+        parameterMap.put(KioskKey.Context, getApplicationContext());
+
+        kiosk.registerCallback(iKioskCallback);
+        kiosk.initialize(parameterMap);
 
         loadSupportedAppIcons();
         mainLayout.setOnTouchListener(tapHandler);
+    }
+
+    IKioskCallback iKioskCallback = new IKioskCallback() {
+
+        @Override
+        public void onInitializeComplete(Map<KioskKey, Object> parameterMap) {
+            if (parameterMap != null) {
+                if (parameterMap.get(KioskKey.ErrorCode) == KioskError.NONE) {
+                    enableKioskModeSettings();
+                }
+            }
+        }
+    };
+
+    /**
+     * method checks to see if app is currently set as default launcher
+     * @return boolean true means currently set as default, otherwise false
+     */
+    private boolean isMyAppLauncherDefault() {
+        final IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
+        filter.addCategory(Intent.CATEGORY_HOME);
+
+        List<IntentFilter> filters = new ArrayList<IntentFilter>();
+        filters.add(filter);
+
+        final String myPackageName = getPackageName();
+        List<ComponentName> activities = new ArrayList<ComponentName>();
+        final PackageManager packageManager = (PackageManager) getPackageManager();
+
+        packageManager.getPreferredActivities(filters, activities, null);
+
+        for (ComponentName activity : activities) {
+            if (myPackageName.equals(activity.getPackageName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    IPlatformCallback iPlatformCallback = new IPlatformCallback() {
+        @Override
+        public void onInitializeComplete(Map<PlatformKey, Object> parameterMap) {
+            if (parameterMap != null) {
+                if (parameterMap.get(PlatformKey.ErrorCode) == PlatformError.NONE) {
+                    sdkInitialized = true;
+
+                }
+            }
+        }
+
+        @Override
+        public void onScanWiFiComplete(Map<PlatformKey, Object> parameterMap) {
+            Log.d("","");
+        }
+
+        @Override
+        public void onForgetWiFiComplete(Map<PlatformKey, Object> parameterMap) {
+            Log.d("","");
+        }
+
+        @Override
+        public void onConnectivityChange(Map<PlatformKey, Object> parameterMap) {
+            Log.d("","");
+        }
+
+        @Override
+        public void onDateAndTimeChange(Map<PlatformKey, Object> parameterMap) {
+            Log.d("","");
+        }
+
+        @Override
+        public Map<PlatformKey, Object> onAccessTokenResult(Map<PlatformKey, Object> parameterMap) {
+            return null;
+        }
+    };
+
+    /**
+     * method starts an intent that will bring up a prompt for the user
+     * to select their default launcher. It comes up each time it is
+     * detected that our app is not the default launcher
+     */
+    private void launchAppChooser() {
+        Log.d(TAG, "launchAppChooser()");
+
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        startActivity(intent);
+    }
+
+    public static void resetPreferredLauncherAndOpenChooser(Context context) {
+        PackageManager packageManager = context.getPackageManager();
+        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.MainActivity.class);
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+
+        Intent selector = new Intent(Intent.ACTION_MAIN);
+        selector.addCategory(Intent.CATEGORY_HOME);
+        selector.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(selector);
+
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -224,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "WRITE_SECURE_SETTINGS permission is not yet granted");
 
             //Permission Request
-//            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.WRITE_SECURE_SETTINGS }, WRITE_SECURE_SETTINGS_CODE);
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.WRITE_SECURE_SETTINGS }, WRITE_SECURE_SETTINGS_CODE);
 
             //Special Permission Request
 //            checkSpecialPermission();
@@ -436,14 +531,13 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Get the Package Info of the installed applications
      * @param getSysPackages
-     * @return ArrayList of the installed apps
+     * @return List of the installed apps
      */
     @SuppressLint("QueryPermissionsNeeded")
-    private ArrayList<PackageInfo> getInstalledApps(boolean getSysPackages) {
-        ArrayList<PackageInfo> res = new ArrayList<>();
+    private List<PackageInfo> getInstalledApps(boolean getSysPackages) {
+        List<PackageInfo> res = new ArrayList<>();
         List<android.content.pm.PackageInfo> packages = getPackageManager().getInstalledPackages(0);
-        for(int i = 0; i < packages.size() ;i++) {
-            android.content.pm.PackageInfo p = packages.get(i);
+        for(android.content.pm.PackageInfo p : packages) {
             if ((!getSysPackages) && (p.versionName == null)) {
                 continue ;
             }
@@ -453,6 +547,11 @@ public class MainActivity extends AppCompatActivity {
             newInfo.setVersionName(p.versionName);
             newInfo.setVersionCode(p.versionCode);
             newInfo.setIcon(p.applicationInfo.loadIcon(getPackageManager()));
+            Log.d("KIOSK", "---------------");
+            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
+            Log.d("KIOSK", "Version Name: " + p.versionName);
+            Log.d("KIOSK", "Version Code: " + p.versionCode);
+            Log.d("KIOSK", "App Name: " + p.packageName);
             res.add(newInfo);
         }
         return res;
@@ -460,10 +559,10 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Get the supported apps by opening the JSON file from the assets folder
-     * @return ArrayList of the supported apps
+     * @return List of the supported apps
      */
-    private ArrayList<PackageInfo> getSupportedApps() {
-        ArrayList<PackageInfo> supportedApps = new ArrayList<>();
+    private List<PackageInfo> getSupportedApps() {
+        List<PackageInfo> supportedApps = new ArrayList<>();
         final String jsonString = readJsonFile(MainActivity.this, filePath);
 
         try {
@@ -486,9 +585,10 @@ public class MainActivity extends AppCompatActivity {
      * Display the supported apps to the screen using RecyclerView
      */
     private void loadSupportedAppIcons() {
-        ArrayList<PackageInfo> supportedApps = getSupportedApps();
-        ArrayList<PackageInfo> installedApps = getInstalledApps(true);
-        ArrayList<PackageInfo> appIcons = new ArrayList<>();
+        int spanCount = 3;
+        List<PackageInfo> supportedApps = getSupportedApps();
+        List<PackageInfo> installedApps = getInstalledApps(true);
+        List<PackageInfo> appIcons = new ArrayList<>();
 
         //get the supported package info on the installed apps list
         for (PackageInfo installed : installedApps) {
@@ -500,7 +600,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        //callback
+        //callback to launch the app
         AppIconAdapter.Callback callback = item -> {
             if (item != null) {
                 launchApp(item);
@@ -513,7 +613,7 @@ public class MainActivity extends AppCompatActivity {
         rvAppIcons.setAdapter(adapter);
 
         //display the icons as tile view
-        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3, LinearLayoutManager.VERTICAL, false);
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, spanCount, LinearLayoutManager.VERTICAL, false);
         rvAppIcons.setLayoutManager(gridLayoutManager);
         rvAppIcons.setHasFixedSize(true);
     }
@@ -579,7 +679,7 @@ public class MainActivity extends AppCompatActivity {
             jsonData = new String(buffer);
 
         } catch (IOException err) {
-            err.printStackTrace();
+            Log.d(TAG,"error: " + err.getMessage());
         } finally {
             // Close the file
             if (stream != null) {
@@ -591,17 +691,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return jsonData;
-    }
-
-    /**
-     * Turn the Device Operating Mode to Android Standard Mode
-     * @return
-     * Gesture: RIGHT LEFT RIGHT LEFT DOWN DOWN UP UP
-     */
-    private boolean standardAndroidModeSequence() {
-        REQUESTED_MODE = MODE_STANDARD;
-        checkPermission(REQUESTED_MODE);
-        return false;
     }
 
     /**
@@ -657,7 +746,27 @@ public class MainActivity extends AppCompatActivity {
             openSettingsSequence();
         } else if (touchSequence.contains(getString(R.string.STANDARD_MODE_SEQUENCE))) {
             touchSequence = "";
-            standardAndroidModeSequence();
+            disableKioskModeSettings();
         }
     }
+
+    private void enableKioskModeSettings() {
+        kiosk.enable();
+    }
+
+    private void disableKioskModeSettings() {
+        kiosk.disable();
+    }
+
+
+    void setDefaultHomeScreen() throws IOException {
+        String yourCommand = "adb shell cmd package set-home-activity com.priv.upakiosk/.MainActivity";
+        Runtime.getRuntime().exec(yourCommand);
+    }
+
+    public void onDestroy() {
+        super.onDestroy();
+        kiosk.abort();
+    }
+
 }

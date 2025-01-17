@@ -7,14 +7,14 @@
     android:layout_height="110dp"
     android:layout_margin="5dp"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    tools:ignore="UseCompoundDrawables">
 
     <ImageView
         android:id="@+id/ivIcon"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_gravity="center"
-        app:srcCompat="@drawable/ic_launcher_foreground" />
+        android:layout_gravity="center" />
 
     <TextView
         android:id="@+id/tvAppName"

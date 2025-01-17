@@ -6,5 +6,9 @@
   {
     "Package": "com.global.tms",
     "Name": "UDS Downloader"
+  },
+  {
+    "Package": "com.castlestech.loader.loader",
+    "Name": "loader"
   }
 ]
