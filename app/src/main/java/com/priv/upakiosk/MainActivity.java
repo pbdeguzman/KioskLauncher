@@ -33,9 +33,6 @@ import com.global.cl.kiosk.IKioskCallback;
 import com.global.cl.kiosk.Kiosk;
 import com.global.cl.kiosk.KioskError;
 import com.global.cl.kiosk.KioskKey;
-import com.global.cl.platform.IPlatformCallback;
-import com.global.cl.platform.PlatformError;
-import com.global.cl.platform.PlatformKey;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -84,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
 
     private String touchSequence = "";
     Context context;
-    public boolean sdkInitialized = false;
     Kiosk kiosk;
 
     @Override
@@ -158,43 +154,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return false;
     }
-
-    IPlatformCallback iPlatformCallback = new IPlatformCallback() {
-        @Override
-        public void onInitializeComplete(Map<PlatformKey, Object> parameterMap) {
-            if (parameterMap != null) {
-                if (parameterMap.get(PlatformKey.ErrorCode) == PlatformError.NONE) {
-                    sdkInitialized = true;
-
-                }
-            }
-        }
-
-        @Override
-        public void onScanWiFiComplete(Map<PlatformKey, Object> parameterMap) {
-            Log.d("","");
-        }
-
-        @Override
-        public void onForgetWiFiComplete(Map<PlatformKey, Object> parameterMap) {
-            Log.d("","");
-        }
-
-        @Override
-        public void onConnectivityChange(Map<PlatformKey, Object> parameterMap) {
-            Log.d("","");
-        }
-
-        @Override
-        public void onDateAndTimeChange(Map<PlatformKey, Object> parameterMap) {
-            Log.d("","");
-        }
-
-        @Override
-        public Map<PlatformKey, Object> onAccessTokenResult(Map<PlatformKey, Object> parameterMap) {
-            return null;
-        }
-    };
 
     /**
      * method starts an intent that will bring up a prompt for the user

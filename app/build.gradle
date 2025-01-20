@@ -52,6 +52,15 @@ android {
             signingConfig signingConfigs.debug
             versionNameSuffix ".debug"
         }
+
+        devt {
+            minifyEnabled true
+            testCoverageEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules-devt.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            versionNameSuffix ".devt"
+        }
     }
 
     sourceSets { main { assets.srcDirs = ['src/main/assets', 'src/main/assets/'] } }
@@ -59,9 +68,9 @@ android {
     flavorDimensions "vendor"
     productFlavors {
         // VENDOR
-        Sunmi_ {
+        VENDOR_NAME_ {
             dimension "vendor"
-            versionNameSuffix "-Sunmi"
+            versionNameSuffix "-VENDOR_NAME"
             minSdk 22
         }
     }
@@ -73,8 +82,9 @@ android {
 
     variantFilter { variant ->
         def needed = variant.name in [
-                'Sunmi_Debug',
-                'Sunmi_Release',
+                'VENDOR_NAME_Debug',
+                'VENDOR_NAME_Devt',
+                'VENDOR_NAME_Release',
         ]
         setIgnore(!needed)
     }
@@ -110,6 +120,9 @@ dependencies {
         api project(':CompatibilityLayer')
     } else {
         debugImplementation ('com.global.cl:CompatibilityLayer-debug:1.0@aar') {
+            transitive = true;
+        }
+        devtImplementation ('com.global.cl:CompatibilityLayer-devt:1.0@aar') {
             transitive = true;
         }
         releaseImplementation ('com.global.cl:CompatibilityLayer-release:1.0@aar') {
