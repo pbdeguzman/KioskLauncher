@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -100,30 +101,41 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedAppIcons();
         });
 
-        if (!isMyAppLauncherDefault()) {
-            Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
-            new SetDefaultLauncher(this).launchHomeOrClearDefaultsDialog();
-        } else {
-            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
-        }
-        //Hide Navigation Icons
+        kiosk.registerCallback(iKioskCallback);
 
         Map<KioskKey, Object> parameterMap = new HashMap<>();
         parameterMap.put(KioskKey.Context, getApplicationContext());
-
-        kiosk.registerCallback(iKioskCallback);
         kiosk.initialize(parameterMap);
+
+        if (!isDefaultLauncher()) {
+//            Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
+//            Map<KioskKey, Object> returnMap = kiosk.setDefaultHomeScreen();
+//            if (returnMap.get(KioskKey.ErrorCode) == KioskError.OPERATION_NOT_SUPPORTED) {
+//                new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
+//            }
+            resetPreferredLauncherAndOpenChooser(getApplicationContext());
+        } else {
+            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
+        }
 
         loadSupportedAppIcons();
         mainLayout.setOnTouchListener(tapHandler);
     }
 
     IKioskCallback iKioskCallback = new IKioskCallback() {
-
         @Override
         public void onInitializeComplete(Map<KioskKey, Object> parameterMap) {
             if (parameterMap != null) {
                 if (parameterMap.get(KioskKey.ErrorCode) == KioskError.NONE) {
+                    if (!isDefaultLauncher()) {
+                        Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
+                        //kiosk.setDefaultHomeScreen();
+                        //new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
+                        //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+                        //launchAppChooser();
+                    } else {
+                        Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
+                    }
                     enableKioskModeSettings();
                 }
             }
@@ -134,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
      * method checks to see if app is currently set as default launcher
      * @return boolean true means currently set as default, otherwise false
      */
-    private boolean isMyAppLauncherDefault() {
+    private boolean isDefaultLauncher() {
         final IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
         filter.addCategory(Intent.CATEGORY_HOME);
 
@@ -142,8 +154,8 @@ public class MainActivity extends AppCompatActivity {
         filters.add(filter);
 
         final String myPackageName = getPackageName();
-        List<ComponentName> activities = new ArrayList<ComponentName>();
-        final PackageManager packageManager = (PackageManager) getPackageManager();
+        List<ComponentName> activities = new ArrayList<>();
+        final PackageManager packageManager = getPackageManager();
 
         packageManager.getPreferredActivities(filters, activities, null);
 
@@ -156,24 +168,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * method starts an intent that will bring up a prompt for the user
-     * to select their default launcher. It comes up each time it is
-     * detected that our app is not the default launcher
+     * Check if the application is the Default Home Launcher
+     * @return
      */
-    private void launchAppChooser() {
-        Log.d(TAG, "launchAppChooser()");
+    private boolean isMyLauncherDefault() {
+        String packageName = getPackageName();
+        String defaultLauncher = null;
 
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        startActivity(intent);
+        ResolveInfo resolveInfo = getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        if (resolveInfo != null && resolveInfo.activityInfo != null) {
+            defaultLauncher = resolveInfo.activityInfo.packageName;
+        }
+
+        return defaultLauncher != null && defaultLauncher.equals(packageName);
     }
 
     public static void resetPreferredLauncherAndOpenChooser(Context context) {
         PackageManager packageManager = context.getPackageManager();
-        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.MainActivity.class);
+        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
 
         Intent selector = new Intent(Intent.ACTION_MAIN);
@@ -469,25 +484,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Check if the application is the Default Home Launcher
-     * @return
-     */
-    private boolean isMyLauncherDefault() {
-        String packageName = getPackageName();
-        String defaultLauncher = null;
-
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-
-        ResolveInfo resolveInfo = getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        if (resolveInfo != null && resolveInfo.activityInfo != null) {
-            defaultLauncher = resolveInfo.activityInfo.packageName;
-        }
-
-        return defaultLauncher != null && defaultLauncher.equals(packageName);
-    }
-
-    /**
      * Get the Package Info of the installed applications
      * @param getSysPackages
      * @return List of the installed apps
@@ -710,16 +706,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableKioskModeSettings() {
-        kiosk.enable();
+        Map<KioskKey, Object> returnMap = kiosk.enable();
+        if (returnMap.get(KioskKey.ErrorCode) == KioskError.RESTART_REQUIRED) {
+            showDialogBox(Objects.requireNonNull(returnMap.get(KioskKey.ErrorText)).toString());
+        }
     }
 
     private void disableKioskModeSettings() {
-        kiosk.disable();
+        Map<KioskKey, Object> returnMap = kiosk.disable();
+        if (returnMap.get(KioskKey.ErrorCode) == KioskError.RESTART_REQUIRED) {
+            showDialogBox(Objects.requireNonNull(returnMap.get(KioskKey.ErrorText)).toString());
+        }
+        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+        kiosk.setDefaultHomeScreen();
     }
 
 
     void setDefaultHomeScreen() throws IOException {
-        String yourCommand = "adb shell cmd package set-home-activity com.priv.upakiosk/.MainActivity";
+        String yourCommand = "adb shell cmd package set-home-activity com.priv.upakiosk";
+        //String yourCommand = "adb shell settings put global custom_launcher com.priv.upakiosk";
         Runtime.getRuntime().exec(yourCommand);
     }
 
@@ -728,4 +733,16 @@ public class MainActivity extends AppCompatActivity {
         kiosk.abort();
     }
 
+    private void launchAppChooser() {
+        Log.d(TAG, "launchAppChooser()");
+
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        startActivity(intent);
+
+    }
 }

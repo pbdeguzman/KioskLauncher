@@ -84,8 +84,6 @@ public class SetDefaultLauncher {
                                     .length(), 18);
         }
 
-
-
         new AlertDialog.Builder(activity)
                 .setMessage(string)
                 .setNegativeButton(
