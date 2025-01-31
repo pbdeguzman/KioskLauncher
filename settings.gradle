@@ -22,3 +22,9 @@ include ':app'
  */
 include ':CompatibilityLayer'
 project(':CompatibilityLayer').projectDir = new File('submodules/cl')
+
+/**
+ * FUNCTIONAL BLOCKS
+ */
+include ':Platform_Module'
+project(':Platform_Module').projectDir = new File('submodules/fb/Platform_Module')

@@ -8,6 +8,37 @@ IF EXIST ".\submodules" (
 mkdir ".\submodules"
 echo.
 
+echo Setup symbolic link for submodules fb
+mklink /j ".\submodules\fb\" "..\FBs"
+echo.
+
+IF EXIST "%userprofile%\.m2\repository\com\global" (
+	echo Recreating m2 repository...
+	rmdir /s /q "%userprofile%\.m2\repository\com\global"
+)
+
+IF NOT EXIST "%userprofile%\.m2\repository\com\global" (
+	echo Will create a folder link for "%userprofile%\.m2\repository\com\global.
+	mkdir "%userprofile%\.m2\repository\com\global"
+)
+
+IF EXIST "%userprofile%\.m2\repository\com\global"  (
+	echo Setup symbolic link for out folder to maven local
+    echo.
+    echo Copy out folder fb to maven local %userprofile%\.m2\repository\com\global\fb
+	xcopy /S /I /Q /Y /F  "..\FBs\out\fb"  "%userprofile%\.m2\repository\com\global\fb\"
+    echo.
+    echo Copy out folder card_module to maven local %userprofile%\.m2\repository\com\global\card_module
+    xcopy /S /I /Q /Y /F  "..\FBs\out\card_module" "%userprofile%\.m2\repository\com\global\card_module\"
+    echo.
+    echo Copy out folder socketrequest to maven local %userprofile%\.m2\repository\com\global\socketrequest
+    xcopy /S /I /Q /Y /F  "..\FBs\out\socketrequest" "%userprofile%\.m2\repository\com\global\socketrequest\"
+	echo.
+    echo Copy out folder encryptedSharedPreferences to maven local %userprofile%\.m2\repository\com\global\encryptedSharedPreferences
+    xcopy /S /I /Q /Y /F  "..\FBs\out\encryptedSharedPreferences" "%userprofile%\.m2\repository\com\global\encryptedSharedPreferences\"
+)
+echo.
+
 set "cl=%1"
 IF NOT [%1] == [] (
     echo Setup symbolic link for submodules cl

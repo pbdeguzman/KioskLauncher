@@ -72,7 +72,7 @@ android {
         VENDOR_NAME_ {
             dimension "vendor"
             versionNameSuffix "-VENDOR_NAME"
-            minSdk 22
+            minSdk MINSDK
         }
     }
 
