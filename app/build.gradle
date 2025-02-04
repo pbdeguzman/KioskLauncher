@@ -130,6 +130,22 @@ dependencies {
             transitive = true;
         }
     }
+
+    if (findProject(':Platform_Module')) {
+        api project(':Platform_Module')
+    } else {
+        debugImplementation 'com.global.fb.platform:Platform_Module-debug:1.0@aar'
+        devtImplementation 'com.global.fb.platform:Platform_Module-devt:1.0@aar'
+        releaseImplementation 'com.global.fb.platform:Platform_Module-release:1.0@aar'
+    }
+
+    if (findProject(':HUDS_Module')) {
+        api project(':HUDS_Module')
+    } else {
+        debugImplementation 'com.global.fb.huds:HUDS_Module-debug:1.0@aar'
+        devtImplementation 'com.global.fb.huds:HUDS_Module-devt:1.0@aar'
+        releaseImplementation 'com.global.fb.huds:HUDS_Module-release:1.0@aar'
+    }
 }
 
 allprojects {
