@@ -29,10 +29,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.global.cl.kiosk.IKioskCallback;
-import com.global.cl.kiosk.Kiosk;
-import com.global.cl.kiosk.KioskError;
-import com.global.cl.kiosk.KioskKey;
+import com.global.cl.platform.PlatformError;
+import com.global.fb.platform.IFbPlatformCallback;
+import com.global.fb.platform.Platform;
+import com.global.fb.platform.PlatformKey;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,11 +41,14 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,15 +69,7 @@ public class MainActivity extends AppCompatActivity {
     final int WRITE_EXTERNAL_STORAGE_CODE = 1001;
     final int WRITE_SECURE_SETTINGS_CODE = 1002;
 
-    //FLAG FOR HIDE NAVIGATION BAR ITEMS
-    final int STATUS_BAR_DISABLE_HOME = 0x00200000; //hide home key
-    final int STATUS_BAR_DISABLE_BACK = 0x00400000; //hide back key
-    final int STATUS_BAR_DISABLE_RECENT = 0x01000000; //hide recent key
-
     private int REQUESTED_MODE = 1;
-    final int MODE_STANDARD = 1;
-    final int MODE_MERCHANT = 2;
-    final int MODE_KIOSK    = 3;
 
     private RecyclerView rvAppIcons;
     private View mainLayout;
@@ -82,7 +77,8 @@ public class MainActivity extends AppCompatActivity {
 
     private String touchSequence = "";
     Context context;
-    Kiosk kiosk;
+    //Kiosk kiosk;
+    Platform platform;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         context = getApplicationContext();
-        kiosk = new Kiosk();
         mainLayout = findViewById(R.id.mainLayout);
         rvAppIcons = findViewById(R.id.rvAppIcons);
         refreshLayout = findViewById(R.id.refreshLayout);
@@ -101,19 +96,17 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedAppIcons();
         });
 
-        kiosk.registerCallback(iKioskCallback);
+        platform = new Platform();
+        platform.registerCallback(iFbPlatformCallback);
+        Map<String, Object> platformMap = new HashMap<>();
+        platformMap.put(PlatformKey.Context.name(), context);
+        platform.initialize(platformMap);
 
-        Map<KioskKey, Object> parameterMap = new HashMap<>();
-        parameterMap.put(KioskKey.Context, getApplicationContext());
-        kiosk.initialize(parameterMap);
-
-        if (!isDefaultLauncher()) {
-//            Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
-//            Map<KioskKey, Object> returnMap = kiosk.setDefaultHomeScreen();
-//            if (returnMap.get(KioskKey.ErrorCode) == KioskError.OPERATION_NOT_SUPPORTED) {
-//                new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
-//            }
-            resetPreferredLauncherAndOpenChooser(getApplicationContext());
+        if (!isMyLauncherDefault()) {
+            //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+            //platform.setDefaultHomeScreen();
+            //launchAppChooser();
+            setAsDefaultHomeActivity();
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
         }
@@ -122,25 +115,32 @@ public class MainActivity extends AppCompatActivity {
         mainLayout.setOnTouchListener(tapHandler);
     }
 
-    IKioskCallback iKioskCallback = new IKioskCallback() {
+    IFbPlatformCallback iFbPlatformCallback = new IFbPlatformCallback() {
         @Override
-        public void onInitializeComplete(Map<KioskKey, Object> parameterMap) {
-            if (parameterMap != null) {
-                if (parameterMap.get(KioskKey.ErrorCode) == KioskError.NONE) {
-                    if (!isDefaultLauncher()) {
-                        Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
-                        //kiosk.setDefaultHomeScreen();
-                        //new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
-                        //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-                        //launchAppChooser();
-                    } else {
-                        Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
-                    }
-                    enableKioskModeSettings();
-                }
-            }
+        public void onInitializeComplete() {
+            enableKioskModeSettings();
         }
     };
+
+//    IKioskCallback iKioskCallback = new IKioskCallback() {
+//        @Override
+//        public void onInitializeComplete(Map<KioskKey, Object> parameterMap) {
+//            if (parameterMap != null) {
+//                if (parameterMap.get(KioskKey.ErrorCode) == KioskError.NONE) {
+//                    if (!isDefaultLauncher()) {
+//                        Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
+//                        //kiosk.setDefaultHomeScreen();
+//                        //new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
+//                        //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+//                        //launchAppChooser();
+//                    } else {
+//                        Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
+//                    }
+//                    enableKioskModeSettings();
+//                }
+//            }
+//        }
+//    };
 
     /**
      * method checks to see if app is currently set as default launcher
@@ -502,11 +502,11 @@ public class MainActivity extends AppCompatActivity {
             newInfo.setVersionName(p.versionName);
             newInfo.setVersionCode(p.versionCode);
             newInfo.setIcon(p.applicationInfo.loadIcon(getPackageManager()));
-            Log.d("KIOSK", "---------------");
-            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
-            Log.d("KIOSK", "Version Name: " + p.versionName);
-            Log.d("KIOSK", "Version Code: " + p.versionCode);
-            Log.d("KIOSK", "App Name: " + p.packageName);
+//            Log.d("KIOSK", "---------------");
+//            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
+//            Log.d("KIOSK", "Version Name: " + p.versionName);
+//            Log.d("KIOSK", "Version Code: " + p.versionCode);
+//            Log.d("KIOSK", "App Name: " + p.packageName);
             res.add(newInfo);
         }
         return res;
@@ -617,11 +617,16 @@ public class MainActivity extends AppCompatActivity {
         int len;
         byte[] buffer;
         InputStream stream = null;
+        String dataFilePath = context.getFilesDir() + File.separator;
+        String supportedFile = dataFilePath + filePath;
+        Log.d(TAG, "dataFilePath: " + dataFilePath);
+        Log.d(TAG, "filePath: " + filePath);
+        Log.d(TAG, "supportedFile: " + supportedFile);
 
         try {
             // Open json file
-            if (new File(filePath).exists()) {
-                stream = new FileInputStream(new File(filePath));
+            if (new File(supportedFile).exists()) {
+                stream = Files.newInputStream(Paths.get(supportedFile));
             } else {
                 stream = context.getAssets().open(filePath);
             }
@@ -706,31 +711,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableKioskModeSettings() {
-        Map<KioskKey, Object> returnMap = kiosk.enable();
-        if (returnMap.get(KioskKey.ErrorCode) == KioskError.RESTART_REQUIRED) {
-            showDialogBox(Objects.requireNonNull(returnMap.get(KioskKey.ErrorText)).toString());
-        }
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
     }
 
     private void disableKioskModeSettings() {
-        Map<KioskKey, Object> returnMap = kiosk.disable();
-        if (returnMap.get(KioskKey.ErrorCode) == KioskError.RESTART_REQUIRED) {
-            showDialogBox(Objects.requireNonNull(returnMap.get(KioskKey.ErrorText)).toString());
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
+        if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
+            showDialogBox(Objects.requireNonNull(returnMap.get(com.global.cl.platform.PlatformKey.ErrorText)).toString());
         }
         context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-        kiosk.setDefaultHomeScreen();
+        platform.setDefaultHomeScreen();
     }
 
 
-    void setDefaultHomeScreen() throws IOException {
-        String yourCommand = "adb shell cmd package set-home-activity com.priv.upakiosk";
+    void setAsDefaultHomeActivity() {
+        String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
+        try {
+            Runtime.getRuntime().exec(command);
+        } catch (IOException e) {
+            Log.d(TAG, "Error: " + e.getMessage());
+        }
+    }
+
+    void grantPermission() throws IOException {
+        //String yourCommand = "adb shell";
+        String command = "pm grant com.priv.upakiosk android.permission.WRITE_SECURE_SETTINGS";
+        //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
         //String yourCommand = "adb shell settings put global custom_launcher com.priv.upakiosk";
-        Runtime.getRuntime().exec(yourCommand);
+        Runtime.getRuntime().exec(command);
     }
 
     public void onDestroy() {
         super.onDestroy();
-        kiosk.abort();
+        platform.exitKiosk();
     }
 
     private void launchAppChooser() {
@@ -739,7 +752,6 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         intent.addCategory(Intent.CATEGORY_DEFAULT);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         startActivity(intent);

@@ -6,6 +6,7 @@
     android:layout_width="110dp"
     android:layout_height="110dp"
     android:layout_margin="5dp"
+    android:background="#ffffff"
     android:orientation="vertical"
     tools:context=".MainActivity"
     tools:ignore="UseCompoundDrawables">
@@ -14,12 +15,14 @@
         android:id="@+id/ivIcon"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_gravity="center" />
+        android:layout_gravity="center"
+        android:background="#ffffff" />
 
     <TextView
         android:id="@+id/tvAppName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#ffffff"
         android:gravity="center"
         android:text="Application Name"
         android:textAlignment="gravity"
