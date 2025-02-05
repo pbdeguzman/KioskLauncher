@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/layoutHolder"
     android:layout_width="110dp"
-    android:layout_height="110dp"
-    android:layout_margin="5dp"
+    android:layout_height="wrap_content"
+    android:layout_margin="10dp"
     android:background="#ffffff"
     android:orientation="vertical"
     tools:context=".MainActivity"
@@ -16,12 +16,14 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_gravity="center"
+        android:layout_marginTop="10dp"
         android:background="#ffffff" />
 
     <TextView
         android:id="@+id/tvAppName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
         android:background="#ffffff"
         android:gravity="center"
         android:text="Application Name"

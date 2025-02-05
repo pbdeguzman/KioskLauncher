@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">UPA Kiosk Launcher</string>
+    <string name="app_name">UPA Kiosk</string>
     <string name="nav_open">Open</string>
     <string name="nav_close">Close</string>
     <string name="permission">Permission required</string>

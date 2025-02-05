@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.provider.Settings;
@@ -103,10 +104,9 @@ public class MainActivity extends AppCompatActivity {
         platform.initialize(platformMap);
 
         if (!isMyLauncherDefault()) {
-            //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
             //platform.setDefaultHomeScreen();
             //launchAppChooser();
-            setAsDefaultHomeActivity();
+            makePreferred();
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
         }
@@ -268,10 +268,9 @@ public class MainActivity extends AppCompatActivity {
      * 3 - Kiosk Mode
      */
     private void setDeviceOperatingMode(int mode) {
-            Settings.Global.putInt(getContentResolver(), "device_operating_mode", mode);
-            Intent intent = new Intent("com.verifone.DEVICE_OPERATING_MODE");
-            sendBroadcast(intent);
-            showDialogBox("Operating Mode has been changed \n\nPlease reboot your device.");
+        Settings.Global.putInt(getContentResolver(), "device_operating_mode", mode);
+        Intent intent = new Intent("com.verifone.DEVICE_OPERATING_MODE");
+        sendBroadcast(intent);
     }
 
     private int getDeviceOperatingMode() throws Settings.SettingNotFoundException {
@@ -619,9 +618,6 @@ public class MainActivity extends AppCompatActivity {
         InputStream stream = null;
         String dataFilePath = context.getFilesDir() + File.separator;
         String supportedFile = dataFilePath + filePath;
-        Log.d(TAG, "dataFilePath: " + dataFilePath);
-        Log.d(TAG, "filePath: " + filePath);
-        Log.d(TAG, "supportedFile: " + supportedFile);
 
         try {
             // Open json file
@@ -724,10 +720,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    void setAsDefaultHomeActivity() {
-        String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
+    void setKioskAsDefaultHomeActivity() {
+        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+        String command = "sh -c cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
         try {
-            Runtime.getRuntime().exec(command);
+            Process p = Runtime.getRuntime().exec(command, null, null);
+            p.getInputStream();
         } catch (IOException e) {
             Log.d(TAG, "Error: " + e.getMessage());
         }
@@ -752,9 +750,20 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         intent.addCategory(Intent.CATEGORY_DEFAULT);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setFlags(Intent.FLAG_ACTIVITY_TASK_ON_HOME);
 
+        //startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
         startActivity(intent);
 
+    }
+
+    private void makePreferred() {
+        PackageManager pm = getPackageManager();
+        IntentFilter filter = new IntentFilter("android.intent.action.MAIN");
+        filter.addCategory(Intent.CATEGORY_HOME);
+        filter.addCategory("android.intent.category.DEFAULT");
+        ComponentName component = new ComponentName("com.priv.upakiosk", "com.priv.upakiosk.MainActivity");
+        pm.addPreferredActivity(filter, IntentFilter.MATCH_CATEGORY_EMPTY, null, component);
+        //startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
     }
 }
