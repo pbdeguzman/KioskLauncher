@@ -14,3 +14,7 @@
 .cxx
 local.properties
 app/debug/app-debug.apk
+submodules/cl/
+submodules/fb/
+.idea/gradle.xml
+app/src/main/assets/raw/supported_apps.json

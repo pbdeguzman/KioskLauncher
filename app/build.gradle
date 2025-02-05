@@ -97,8 +97,15 @@ android {
     }
 }
 
+configurations {
+    cleanedAnnotations
+    implementation.exclude group: 'org.jetbrains' , module:'annotations'
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir:'libs')
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
 
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
@@ -109,7 +116,6 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 
     implementation 'androidx.core:core-ktx:1.5.0-alpha05'
-
     compileOnly 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
@@ -145,6 +151,43 @@ dependencies {
         debugImplementation 'com.global.fb.huds:HUDS_Module-debug:1.0@aar'
         devtImplementation 'com.global.fb.huds:HUDS_Module-devt:1.0@aar'
         releaseImplementation 'com.global.fb.huds:HUDS_Module-release:1.0@aar'
+    }
+
+    if (findProject(':Settings_Module')) {
+        api project(':Settings_Module')
+    } else {
+        debugImplementation 'com.global.fb.settings:Settings_Module-debug:1.0@aar'
+        devtImplementation 'com.global.fb.settings:Settings_Module-devt:1.0@aar'
+        releaseImplementation 'com.global.fb.settings:Settings_Module-release:1.0@aar'
+
+        debugImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-debug:1.0@aar'
+        devtImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-devt:1.0@aar'
+        releaseImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-release:1.0@aar'
+    }
+
+    if (findProject(':Update_Module')) {
+        api project(':Update_Module')
+    } else {
+        debugImplementation 'com.global.fb.update:Update_Module-debug:1.0.0@aar'
+        devtImplementation 'com.global.fb.update:Update_Module-devt:1.0.0@aar'
+        releaseImplementation 'com.global.fb.update:Update_Module-release:1.0.0@aar'
+
+        debugImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-debug:1.0@aar'
+        devtImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-devt:1.0@aar'
+        releaseImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-release:1.0@aar'
+    }
+
+    if (findProject(':Database_Module')) {
+        api project(':Database_Module')
+    } else {
+        debugImplementation 'com.global.fb.database:Database_Module-debug:1.0@aar'
+        devtImplementation 'com.global.fb.database:Database_Module-devt:1.0@aar'
+        releaseImplementation 'com.global.fb.database:Database_Module-release:1.0@aar'
+        implementation 'net.zetetic:android-database-sqlcipher:4.0.1'
+
+        debugImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-debug:1.0@aar'
+        devtImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-devt:1.0@aar'
+        releaseImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-release:1.0@aar'
     }
 }
 

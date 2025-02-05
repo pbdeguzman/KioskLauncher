@@ -12,6 +12,8 @@ import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
@@ -31,9 +33,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.global.cl.platform.PlatformError;
+import com.global.fb.database.DatabaseModule;
+import com.global.fb.huds.HudsModule;
+import com.global.fb.huds.IUdsCallback;
 import com.global.fb.platform.IFbPlatformCallback;
 import com.global.fb.platform.Platform;
 import com.global.fb.platform.PlatformKey;
+import com.global.fb.settings.SettingsModule;
+import com.global.fb.update.UpdateModule;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -80,6 +87,11 @@ public class MainActivity extends AppCompatActivity {
     Context context;
     //Kiosk kiosk;
     Platform platform;
+    HudsModule huds;
+    SettingsModule settings;
+    UpdateModule update;
+    DatabaseModule database;
+    private Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,33 +106,62 @@ public class MainActivity extends AppCompatActivity {
         //pull to refresh to reload the supported apps
         refreshLayout.setOnRefreshListener(() -> {
             refreshLayout.setRefreshing(false);
-            loadSupportedAppIcons();
+            loadSupportedApps();
         });
 
         platform = new Platform();
-        platform.registerCallback(iFbPlatformCallback);
         Map<String, Object> platformMap = new HashMap<>();
         platformMap.put(PlatformKey.Context.name(), context);
+        IFbPlatformCallback iFbPlatformCallback = () -> {
+            handler = new Handler(Looper.getMainLooper());
+            handler.post(this::init);
+            enableKioskModeSettings();
+        };
+        platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
 
         if (!isMyLauncherDefault()) {
-            //platform.setDefaultHomeScreen();
-            //launchAppChooser();
-            makePreferred();
+            setKioskAsDefaultHomeScreen();
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
         }
 
-        loadSupportedAppIcons();
         mainLayout.setOnTouchListener(tapHandler);
     }
 
-    IFbPlatformCallback iFbPlatformCallback = new IFbPlatformCallback() {
-        @Override
-        public void onInitializeComplete() {
-            enableKioskModeSettings();
+    private void init() {
+        update = UpdateModule.getInstance(this.context);
+        database = new DatabaseModule(context);
+        settings = new SettingsModule(context, database);
+        huds = new HudsModule(context, settings, update);
+        huds.registerCallback(str -> {loadSupportedApps();});
+        checkSupportedAppsUpdate();
+    }
+
+    private void checkSupportedAppsUpdate() {
+        try {
+            JSONObject fileList = new JSONObject();
+            fileList.put("File", SUPPORTED_APPS);
+            fileList.put("DestDir", "raw");
+
+            JSONArray udsList = new JSONArray();
+            udsList.put(fileList);
+
+            JSONObject jsonFile = new JSONObject();
+            jsonFile.put("File", udsList);
+
+            JSONObject params = new JSONObject();
+            params.put("File", jsonFile);
+            params.put("ToUpdate", false);
+            params.put("isDeleteAfter", true);
+
+            huds.downloadFiles(params.toString());
+        } catch (JSONException e) {
+            Log.d(TAG, "Error: " + e.getMessage());
         }
-    };
+    }
+
+    IFbPlatformCallback iFbPlatformCallback = () -> enableKioskModeSettings();
 
 //    IKioskCallback iKioskCallback = new IKioskCallback() {
 //        @Override
@@ -501,11 +542,11 @@ public class MainActivity extends AppCompatActivity {
             newInfo.setVersionName(p.versionName);
             newInfo.setVersionCode(p.versionCode);
             newInfo.setIcon(p.applicationInfo.loadIcon(getPackageManager()));
-//            Log.d("KIOSK", "---------------");
-//            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
-//            Log.d("KIOSK", "Version Name: " + p.versionName);
-//            Log.d("KIOSK", "Version Code: " + p.versionCode);
-//            Log.d("KIOSK", "App Name: " + p.packageName);
+            Log.d("KIOSK", "---------------");
+            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
+            Log.d("KIOSK", "Version Name: " + p.versionName);
+            Log.d("KIOSK", "Version Code: " + p.versionCode);
+            Log.d("KIOSK", "App Name: " + p.packageName);
             res.add(newInfo);
         }
         return res;
@@ -538,7 +579,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Display the supported apps to the screen using RecyclerView
      */
-    private void loadSupportedAppIcons() {
+    private void loadSupportedApps() {
         int spanCount = 3;
         List<PackageInfo> supportedApps = getSupportedApps();
         List<PackageInfo> installedApps = getInstalledApps(true);
@@ -622,7 +663,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             // Open json file
             if (new File(supportedFile).exists()) {
-                stream = Files.newInputStream(Paths.get(supportedFile));
+                stream = new FileInputStream(new File(supportedFile));
             } else {
                 stream = context.getAssets().open(filePath);
             }
@@ -720,9 +761,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    void setKioskAsDefaultHomeActivity() {
+    void setKioskAsDefaultHomeScreen() {
         context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-        String command = "sh -c cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
+        //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
+        //String command = "sh -c cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
+        String command = "settings put global custom_launcher com.priv.upakiosk";
         try {
             Process p = Runtime.getRuntime().exec(command, null, null);
             p.getInputStream();

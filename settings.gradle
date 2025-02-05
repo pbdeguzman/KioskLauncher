@@ -30,3 +30,9 @@ include ':Platform_Module'
 project(':Platform_Module').projectDir = new File('submodules/fb/Platform_Module')
 include ':HUDS_Module'
 project(':HUDS_Module').projectDir = new File('submodules/fb/Huds_Module')
+//include 'Update_Module'
+//project(':Update_Module').projectDir = new File('submodules/fb/Update_Module')
+//include 'Settings_Module'
+//project(':Settings_Module').projectDir = new File('submodules/fb/Settings_Module')
+//include 'Database_Module'
+//project(':Database_Module').projectDir = new File('submodules/fb/Database_Module')
