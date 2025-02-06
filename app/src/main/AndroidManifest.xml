@@ -9,8 +9,6 @@
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.SET_PREFERRED_APPLICATIONS"
-        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
@@ -37,6 +35,7 @@
             android:clearTaskOnLaunch="true"
             android:exported="true"
             android:launchMode="singleTask"
+            android:excludeFromRecents="true"
             android:stateNotNeeded="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

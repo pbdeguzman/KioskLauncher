@@ -123,12 +123,7 @@ public class MainActivity extends AppCompatActivity {
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
 
-        if (!isMyLauncherDefault()) {
-            setDefaultHomeScreen();
-        } else {
-            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
-        }
-
+        loadSupportedApps();
         mainLayout.setOnTouchListener(tapHandler);
     }
 
@@ -257,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
             else {
                 Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
             }
+            setDefaultHomeScreen();
         }
     }
 
@@ -318,6 +314,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "READ_EXTERNAL_STORAGE permission is not yet granted");
         } else {
             Log.d(TAG, "READ_EXTERNAL_STORAGE permission is already granted");
+            setDefaultHomeScreen();
         }
     }
 
@@ -757,7 +754,7 @@ public class MainActivity extends AppCompatActivity {
             showDialogBox(Objects.requireNonNull(returnMap.get(com.global.cl.platform.PlatformKey.ErrorText)).toString());
         }
         //platform.setDefaultHomeScreen();
-        setDefaultHomeScreen();
+        resetPreferredLauncherAndOpenChooser(this);
     }
 
 
@@ -807,7 +804,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setDefaultHomeScreen() {
-        resetPreferredLauncherAndOpenChooser(this);
+        if (!isMyLauncherDefault()) {
+            resetPreferredLauncherAndOpenChooser(this);
+        } else {
+            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
+        }
     }
 
     private void resetPreferredLauncherAndOpenChooser(Context context) {
