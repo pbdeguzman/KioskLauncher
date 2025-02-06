@@ -3,6 +3,7 @@ package com.priv.upakiosk;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String touchSequence = "";
     Context context;
-    //Kiosk kiosk;
+
     Platform platform;
     HudsModule huds;
     SettingsModule settings;
@@ -109,6 +110,8 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedApps();
         });
 
+        checkPermission();
+
         platform = new Platform();
         Map<String, Object> platformMap = new HashMap<>();
         platformMap.put(PlatformKey.Context.name(), context);
@@ -121,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         platform.initialize(platformMap);
 
         if (!isMyLauncherDefault()) {
-            setKioskAsDefaultHomeScreen();
+            setDefaultHomeScreen();
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
         }
@@ -160,28 +163,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Error: " + e.getMessage());
         }
     }
-
-    IFbPlatformCallback iFbPlatformCallback = () -> enableKioskModeSettings();
-
-//    IKioskCallback iKioskCallback = new IKioskCallback() {
-//        @Override
-//        public void onInitializeComplete(Map<KioskKey, Object> parameterMap) {
-//            if (parameterMap != null) {
-//                if (parameterMap.get(KioskKey.ErrorCode) == KioskError.NONE) {
-//                    if (!isDefaultLauncher()) {
-//                        Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
-//                        //kiosk.setDefaultHomeScreen();
-//                        //new SetDefaultLauncher(MainActivity.this).launchHomeOrClearDefaultsDialog();
-//                        //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-//                        //launchAppChooser();
-//                    } else {
-//                        Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
-//                    }
-//                    enableKioskModeSettings();
-//                }
-//            }
-//        }
-//    };
 
     /**
      * method checks to see if app is currently set as default launcher
@@ -227,19 +208,6 @@ public class MainActivity extends AppCompatActivity {
         return defaultLauncher != null && defaultLauncher.equals(packageName);
     }
 
-    public static void resetPreferredLauncherAndOpenChooser(Context context) {
-        PackageManager packageManager = context.getPackageManager();
-        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
-        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
-
-        Intent selector = new Intent(Intent.ACTION_MAIN);
-        selector.addCategory(Intent.CATEGORY_HOME);
-        selector.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(selector);
-
-        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
-    }
-
     @SuppressLint("ClickableViewAccessibility")
     private final View.OnTouchListener tapHandler = (view, motionEvent) -> {
         int x = (int) motionEvent.getX();
@@ -280,6 +248,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == READ_EXTERNAL_STORAGE_CODE) {
+            // Checking whether user granted the permission or not.
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Showing the toast message
+                Toast.makeText(MainActivity.this, "Read Storage Permission Granted", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public void onRequestPermissionsResultOld(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == WRITE_EXTERNAL_STORAGE_CODE) {
             // Checking whether user granted the permission or not.
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -290,8 +272,17 @@ public class MainActivity extends AppCompatActivity {
             else {
                 Toast.makeText(MainActivity.this, "Write Storage Permission Denied", Toast.LENGTH_SHORT).show();
             }
-        }
-        else if (requestCode == WRITE_SECURE_SETTINGS_CODE) {
+        } else if (requestCode == READ_EXTERNAL_STORAGE_CODE) {
+            // Checking whether user granted the permission or not.
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                // Showing the toast message
+                Toast.makeText(MainActivity.this, "Read Storage Permission Granted", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        } else if (requestCode == WRITE_SECURE_SETTINGS_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(MainActivity.this, "Write Secure Settings Permission Granted", Toast.LENGTH_SHORT).show();
             }
@@ -321,13 +312,22 @@ public class MainActivity extends AppCompatActivity {
     /**
      * a Request Permission
      */
-    private void checkPermission(int mode) {
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.MANAGE_EXTERNAL_STORAGE }, WRITE_EXTERNAL_STORAGE_CODE);
-//            Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission is not yet granted");
-//        } else {
-//            Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission is already granted");
-//        }
+    private void checkPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, READ_EXTERNAL_STORAGE_CODE);
+            Log.d(TAG, "READ_EXTERNAL_STORAGE permission is not yet granted");
+        } else {
+            Log.d(TAG, "READ_EXTERNAL_STORAGE permission is already granted");
+        }
+    }
+
+    private void checkPermissionOld(int mode) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, WRITE_EXTERNAL_STORAGE_CODE);
+            Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission is not yet granted");
+        } else {
+            Log.d(TAG, "MANAGE_EXTERNAL_STORAGE permission is already granted");
+        }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "WRITE_SECURE_SETTINGS permission is not yet granted");
@@ -451,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<Intent> requestSpecialPermissionIntent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                checkPermission(REQUESTED_MODE);
+                checkPermission();
             }
     );
 
@@ -462,7 +462,7 @@ public class MainActivity extends AppCompatActivity {
         new ActivityResultContracts.RequestPermission(),
         result -> {
             if (result) {
-                checkPermission(REQUESTED_MODE);
+                checkPermission();
             }
         });
 
@@ -748,7 +748,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableKioskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
     }
 
     private void disableKioskModeSettings() {
@@ -756,16 +756,13 @@ public class MainActivity extends AppCompatActivity {
         if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
             showDialogBox(Objects.requireNonNull(returnMap.get(com.global.cl.platform.PlatformKey.ErrorText)).toString());
         }
-        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-        platform.setDefaultHomeScreen();
+        //platform.setDefaultHomeScreen();
+        setDefaultHomeScreen();
     }
 
 
-    void setKioskAsDefaultHomeScreen() {
-        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-        //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
-        //String command = "sh -c cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
-        String command = "settings put global custom_launcher com.priv.upakiosk";
+    private void setKioskAsDefaultHomeScreen() {
+        String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //VERIFONE
         try {
             Process p = Runtime.getRuntime().exec(command, null, null);
             p.getInputStream();
@@ -775,6 +772,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void grantPermission() throws IOException {
+        //String command = "pm disable com.priv.upakiosk"; //VERIFONE
+        //String command = "sh -c cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //CASTLES
+        //String command = "settings put global custom_launcher com.priv.upakiosk"; //SUNMI
         //String yourCommand = "adb shell";
         String command = "pm grant com.priv.upakiosk android.permission.WRITE_SECURE_SETTINGS";
         //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity";
@@ -793,20 +793,35 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_HOME);
         intent.addCategory(Intent.CATEGORY_DEFAULT);
-        intent.setFlags(Intent.FLAG_ACTIVITY_TASK_ON_HOME);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        //startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
         startActivity(intent);
 
     }
 
-    private void makePreferred() {
-        PackageManager pm = getPackageManager();
-        IntentFilter filter = new IntentFilter("android.intent.action.MAIN");
+    private void selectHomeScreenViaSettings() {
+        IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
         filter.addCategory(Intent.CATEGORY_HOME);
-        filter.addCategory("android.intent.category.DEFAULT");
-        ComponentName component = new ComponentName("com.priv.upakiosk", "com.priv.upakiosk.MainActivity");
-        pm.addPreferredActivity(filter, IntentFilter.MATCH_CATEGORY_EMPTY, null, component);
-        //startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        filter.addCategory(Intent.CATEGORY_DEFAULT);
+        startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+    }
+
+    private void setDefaultHomeScreen() {
+        resetPreferredLauncherAndOpenChooser(this);
+    }
+
+    private void resetPreferredLauncherAndOpenChooser(Context context) {
+        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+
+        PackageManager packageManager = context.getPackageManager();
+        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+
+        Intent selector = new Intent(Intent.ACTION_MAIN);
+        selector.addCategory(Intent.CATEGORY_HOME);
+        selector.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(selector);
+
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
     }
 }
