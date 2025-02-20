@@ -3,7 +3,6 @@ package com.priv.upakiosk;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -11,7 +10,6 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -36,7 +34,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.global.cl.platform.PlatformError;
 import com.global.fb.database.DatabaseModule;
 import com.global.fb.huds.HudsModule;
-import com.global.fb.huds.IUdsCallback;
 import com.global.fb.platform.IFbPlatformCallback;
 import com.global.fb.platform.Platform;
 import com.global.fb.platform.PlatformKey;
@@ -50,19 +47,15 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -110,8 +103,6 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedApps();
         });
 
-        checkPermission();
-
         platform = new Platform();
         Map<String, Object> platformMap = new HashMap<>();
         platformMap.put(PlatformKey.Context.name(), context);
@@ -119,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
             handler = new Handler(Looper.getMainLooper());
             handler.post(this::init);
             enableKioskModeSettings();
+            checkPermission();
         };
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
@@ -252,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
             else {
                 Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
             }
-            setDefaultHomeScreen();
+            setDefaultHomeScreen(getPackageName());
         }
     }
 
@@ -314,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "READ_EXTERNAL_STORAGE permission is not yet granted");
         } else {
             Log.d(TAG, "READ_EXTERNAL_STORAGE permission is already granted");
-            setDefaultHomeScreen();
+            setDefaultHomeScreen(getPackageName());
         }
     }
 
@@ -749,20 +741,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void disableKioskModeSettings() {
+        //Removed the default home app
         Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
-        if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
-            showDialogBox(Objects.requireNonNull(returnMap.get(com.global.cl.platform.PlatformKey.ErrorText)).toString());
-        }
-        //platform.setDefaultHomeScreen();
-        resetPreferredLauncherAndOpenChooser(this);
+        selectHomeApplication(this);
     }
 
 
-    private void setKioskAsDefaultHomeScreen() {
+    private void setDefaultHomeScreenViaAdbCommand() {
         String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //VERIFONE
+        //Process p = Runtime.getRuntime().exec(command, null, null);
+        //p.getInputStream();
         try {
-            Process p = Runtime.getRuntime().exec(command, null, null);
-            p.getInputStream();
+
+            Process process = new ProcessBuilder("cmd","package","set-home-activity", "com.priv.upakiosk/com.priv.upakiosk.MainActivity").start();
+            process.getInputStream();
+            //Process p = Runtime.getRuntime().exec("su");
+            //p.getInputStream();
+            //DataOutputStream os = new DataOutputStream(p.getOutputStream());
+            //os.writeBytes(command);
         } catch (IOException e) {
             Log.d(TAG, "Error: " + e.getMessage());
         }
@@ -803,26 +799,40 @@ public class MainActivity extends AppCompatActivity {
         startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
     }
 
-    private void setDefaultHomeScreen() {
-        if (!isMyLauncherDefault()) {
-            resetPreferredLauncherAndOpenChooser(this);
-        } else {
-            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
-        }
-    }
-
     private void resetPreferredLauncherAndOpenChooser(Context context) {
-        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
-
         PackageManager packageManager = context.getPackageManager();
         ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        Intent home = new Intent(Intent.ACTION_MAIN);
+        home.addCategory(Intent.CATEGORY_HOME);
+        home.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(home);
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
+    }
 
-        Intent selector = new Intent(Intent.ACTION_MAIN);
-        selector.addCategory(Intent.CATEGORY_HOME);
-        selector.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(selector);
+    private void setDefaultHomeScreen(String packageName) {
+        if (!isDefaultLauncher()) {
+            Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
+            selectHomeApplication(this);
+        } else {
+            Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
+            showHomeScreen();
+        }
+    }
 
+    private void showHomeScreen() {
+        Intent home = new Intent(Intent.ACTION_MAIN);
+        home.addCategory(Intent.CATEGORY_HOME);
+        home.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(home);
+    }
+
+    private void selectHomeApplication(Context context) {
+        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+        PackageManager packageManager = context.getPackageManager();
+        ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
+        packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+        showHomeScreen();
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
     }
 }
