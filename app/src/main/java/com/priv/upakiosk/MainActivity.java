@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
     final String SUPPORTED_APPS = "supported_apps.json";
+    final String UPA_APP = "com.global.integrated";
     final String filePath = RAW_DIR + File.separator + SUPPORTED_APPS;
 
     boolean permissionGranted = false;
@@ -128,6 +130,14 @@ public class MainActivity extends AppCompatActivity {
         checkSupportedAppsUpdate();
     }
 
+    private void autoLaunchApp(String packageName) {
+        if (BootReceiver.isPackageExisting(this.context, packageName)) {
+            PackageInfo packageInfo = new PackageInfo();
+            packageInfo.setPackageName(packageName);
+            launchApp(packageInfo);
+        }
+    }
+
     private void checkSupportedAppsUpdate() {
         try {
             JSONObject fileList = new JSONObject();
@@ -155,26 +165,26 @@ public class MainActivity extends AppCompatActivity {
      * method checks to see if app is currently set as default launcher
      * @return boolean true means currently set as default, otherwise false
      */
-    private boolean isDefaultLauncher() {
-        final IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
-        filter.addCategory(Intent.CATEGORY_HOME);
-
-        List<IntentFilter> filters = new ArrayList<IntentFilter>();
-        filters.add(filter);
-
-        final String myPackageName = getPackageName();
-        List<ComponentName> activities = new ArrayList<>();
-        final PackageManager packageManager = getPackageManager();
-
-        packageManager.getPreferredActivities(filters, activities, null);
-
-        for (ComponentName activity : activities) {
-            if (myPackageName.equals(activity.getPackageName())) {
-                return true;
-            }
-        }
-        return false;
-    }
+//    private boolean isDefaultLauncher() {
+//        final IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
+//        filter.addCategory(Intent.CATEGORY_HOME);
+//
+//        List<IntentFilter> filters = new ArrayList<IntentFilter>();
+//        filters.add(filter);
+//
+//        final String myPackageName = this.getPackageName();
+//        List<ComponentName> activities = new ArrayList<>();
+//        final PackageManager packageManager = getPackageManager();
+//
+//        packageManager.getPreferredActivities(filters, activities, null);
+//
+//        for (ComponentName activity : activities) {
+//            if (myPackageName.equals(activity.getPackageName())) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 
     /**
      * Check if the application is the Default Home Launcher
@@ -811,7 +821,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setDefaultHomeScreen(String packageName) {
-        if (!isDefaultLauncher()) {
+        if (!BootReceiver.isDefaultLauncher(getApplicationContext())) {
             Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
             selectHomeApplication(this);
         } else {
