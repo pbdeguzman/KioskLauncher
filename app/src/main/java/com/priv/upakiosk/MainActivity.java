@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
@@ -15,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -88,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
     UpdateModule update;
     DatabaseModule database;
     private Handler handler;
+    SharedPreferences prefs = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
             loadSupportedApps();
         });
 
+        loadSupportedApps();
+
         platform = new Platform();
         Map<String, Object> platformMap = new HashMap<>();
         platformMap.put(PlatformKey.Context.name(), context);
@@ -117,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
 
-        loadSupportedApps();
         mainLayout.setOnTouchListener(tapHandler);
     }
 
@@ -747,7 +751,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableKioskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
     }
 
     private void disableKioskModeSettings() {
@@ -758,12 +762,13 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setDefaultHomeScreenViaAdbCommand() {
-        String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //VERIFONE
+        //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //VERIFONE
+        //String command = "adb shell \"settings put global custom_launcher com.priv.upakiosk"; //SUNMI
         //Process p = Runtime.getRuntime().exec(command, null, null);
         //p.getInputStream();
         try {
 
-            Process process = new ProcessBuilder("cmd","package","set-home-activity", "com.priv.upakiosk/com.priv.upakiosk.MainActivity").start();
+            Process process = new ProcessBuilder("settings","put","custom_launcher", "com.priv.upakiosk").start();
             process.getInputStream();
             //Process p = Runtime.getRuntime().exec("su");
             //p.getInputStream();
@@ -823,6 +828,7 @@ public class MainActivity extends AppCompatActivity {
     private void setDefaultHomeScreen(String packageName) {
         if (!BootReceiver.isDefaultLauncher(getApplicationContext())) {
             Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
+            //setDefaultHomeScreenViaAdbCommand();
             selectHomeApplication(this);
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
