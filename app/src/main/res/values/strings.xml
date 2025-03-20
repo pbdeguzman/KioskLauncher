@@ -11,4 +11,5 @@
     <string name="change_default_home_dialog_body_settings_tts">TTS</string>
     <string name="change_default_home_dialog_body_settings">Please set the UPA Kiosk Launcher as you default home screen. \n\nDo you want to continue?</string>
     <string name="change_default_home_dialog_body">Dialog Body</string>
+    <string name="enter_password">Enter password</string>
 </resources>

@@ -11,16 +11,15 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
-import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
-import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -59,6 +58,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -67,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
     final String SUPPORTED_APPS = "supported_apps.json";
+    final String DOWNLOADED_PARAM_FILENAME = "1-DLPARAM.TXT";
     final String UPA_APP = "com.global.integrated";
     final String filePath = RAW_DIR + File.separator + SUPPORTED_APPS;
 
@@ -89,8 +91,9 @@ public class MainActivity extends AppCompatActivity {
     SettingsModule settings;
     UpdateModule update;
     DatabaseModule database;
-    private Handler handler;
+    private Handler handler, hHandler = new Handler(Looper.getMainLooper());
     SharedPreferences prefs = null;
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +104,10 @@ public class MainActivity extends AppCompatActivity {
         mainLayout = findViewById(R.id.mainLayout);
         rvAppIcons = findViewById(R.id.rvAppIcons);
         refreshLayout = findViewById(R.id.refreshLayout);
+        TextView tvTitle = findViewById(R.id.textView);
+        tvTitle.setOnClickListener(v-> {
+            openPasswordScreen();
+        });
 
         //pull to refresh to reload the supported apps
         refreshLayout.setOnRefreshListener(() -> {
@@ -116,11 +123,11 @@ public class MainActivity extends AppCompatActivity {
         IFbPlatformCallback iFbPlatformCallback = () -> {
             handler = new Handler(Looper.getMainLooper());
             handler.post(this::init);
-            enableKioskModeSettings();
             checkPermission();
         };
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
+        enableKioskModeSettings();
 
         mainLayout.setOnTouchListener(tapHandler);
     }
@@ -131,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
         settings = new SettingsModule(context, database);
         huds = new HudsModule(context, settings, update);
         huds.registerCallback(str -> {loadSupportedApps();});
-        checkSupportedAppsUpdate();
+        checkForUpdates();
     }
 
     private void autoLaunchApp(String packageName) {
@@ -142,13 +149,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void checkSupportedAppsUpdate() {
+    private void checkForUpdates() {
         try {
             JSONObject fileList = new JSONObject();
+            JSONArray udsList = new JSONArray();
+
             fileList.put("File", SUPPORTED_APPS);
             fileList.put("DestDir", "raw");
+            udsList.put(fileList);
 
-            JSONArray udsList = new JSONArray();
+            fileList = new JSONObject();
+            fileList.put("File", DOWNLOADED_PARAM_FILENAME);
+            fileList.put("DestDir", "raw");
             udsList.put(fileList);
 
             JSONObject jsonFile = new JSONObject();
@@ -745,21 +757,20 @@ public class MainActivity extends AppCompatActivity {
             touchSequence = "";
             openSettingsSequence();
         } else if (touchSequence.contains(getString(R.string.STANDARD_MODE_SEQUENCE))) {
-            touchSequence = "";
-            disableKioskModeSettings();
+            openPasswordScreen();
         }
     }
 
     private void enableKioskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
     }
 
     private void disableKioskModeSettings() {
         //Removed the default home app
+
         Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
         selectHomeApplication(this);
     }
-
 
     private void setDefaultHomeScreenViaAdbCommand() {
         //String command = "cmd package set-home-activity com.priv.upakiosk/com.priv.upakiosk.MainActivity"; //VERIFONE
@@ -804,7 +815,6 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         startActivity(intent);
-
     }
 
     private void selectHomeScreenViaSettings() {
@@ -828,7 +838,6 @@ public class MainActivity extends AppCompatActivity {
     private void setDefaultHomeScreen(String packageName) {
         if (!BootReceiver.isDefaultLauncher(getApplicationContext())) {
             Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
-            //setDefaultHomeScreenViaAdbCommand();
             selectHomeApplication(this);
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
@@ -851,4 +860,18 @@ public class MainActivity extends AppCompatActivity {
         showHomeScreen();
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
     }
+
+    private void openPasswordScreen() {
+        Intent intent = new Intent(this, PasswordActivity.class);
+        startActivityIntent.launch(intent);
+    }
+
+    ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK) {
+                touchSequence = "";
+                disableKioskModeSettings();
+            }
+        }
+    );
 }

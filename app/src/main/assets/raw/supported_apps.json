@@ -8,6 +8,10 @@
     "Name": "UDS Downloader"
   },
   {
+    "Package": "com.android.settings",
+    "Name": "Settings"
+  },
+  {
     "Package": "com.castlestech.loader.loader",
     "Name": "loader"
   }
