@@ -8,12 +8,18 @@ import android.util.Log;
 
 import com.global.fb.settings.SettingsModule;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
@@ -23,22 +29,16 @@ import java.util.Set;
 public class PasswordModule {
     static final String TAG = "UPA KIOSK";
     final String RAW_DIR = "raw";
-    final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.txt";
+    final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.TXT";
     final String filePath = RAW_DIR + File.separator + DOWNLOADED_PARAM_FILENAME;
     private final SharedPreferences sharedPreferences;
-
+    Context context;
     public PasswordModule(Context context) {
-        String file = scanFile(context, filePath);
-        Properties properties = new Properties();
-        try {
-
-            properties.load(new StringReader(file));
-        } catch (Exception exception) {
-
-        }
-        //readFile(context, filePath);
-        this.sharedPreferences = context.getSharedPreferences(context.getPackageName(), Activity.MODE_PRIVATE);
+        this.context = context;
+        this.sharedPreferences = context.getSharedPreferences(this.context.getPackageName(), Activity.MODE_PRIVATE);
+        parseFile(filePath);
     }
+
     public String getAdminPwd() {
         String merchantId = getMerchantNumber();
 
@@ -75,7 +75,6 @@ public class PasswordModule {
             d.set(year, ii + 1, 0);
             days += d.getActualMaximum(Calendar.DAY_OF_MONTH);
         }
-
         return days;
     }
 
@@ -94,7 +93,7 @@ public class PasswordModule {
     private static int multiMerchantIndex;
 
     public String getMerchantNumber() {
-        String merchantId = getString("MerchantNumber", "1234");
+        String merchantId = getString("MerchantNumber", null);
         if (isMultiMerchantSupported) {
             merchantId = merchantIdSplitVal.get(multiMerchantIndex);
         } else {
@@ -181,6 +180,7 @@ public class PasswordModule {
                 lineNum++;
                 if(line.contains("MerchantNumber")) {
                     System.out.println("ho hum, i found it on line " + lineNum);
+
                     break;
                 }
             }
@@ -189,5 +189,60 @@ public class PasswordModule {
         }
 
         return line;
+    }
+
+    private static final int READ_SUCCESS = 99; // internal status if ParseFile() succeeds
+    private static final int STATUS_INVALID_UPDATE_FILE = 7;
+    private int parseFile(String fileName) {
+        String dataFilePath = context.getFilesDir() + File.separator;
+        String filePath = dataFilePath + fileName;
+        Properties properties = new Properties();
+
+        BufferedReader reader = null;
+        try {
+            if (new File(filePath).exists()) {
+                reader = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8));
+            } else {
+                reader = new BufferedReader(new InputStreamReader(context.getAssets().open(fileName), StandardCharsets.UTF_8));
+            }
+            properties = loadPropertiesFile(reader);
+            String temp = properties.getProperty("MerchantNumber");
+            String merchantNumber = temp .trim().replaceAll("^[\"]|[\"]$", "");
+            putString("MerchantNumber", merchantNumber);
+        } catch (IOException err) {
+            Log.d(TAG, "Error: " + err.getMessage());
+            return STATUS_INVALID_UPDATE_FILE;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    Log.d(TAG, "Error: " + e.getMessage());
+                }
+            }
+        }
+
+        return READ_SUCCESS;
+    }
+
+    private Properties loadPropertiesFile(BufferedReader reader){
+        Properties properties = new Properties();
+        String str;
+        try {
+            while ((str = reader.readLine()) != null) {
+                String key = getAsciiString(str.split("=", 2)[0]);
+                String value = getAsciiString(str.split("=", 2)[1]);
+
+                properties.setProperty(key, value);
+            }
+        } catch (IOException e) {
+            Log.d(TAG, "error: " + e.getMessage() );
+        }
+        return properties;
+    }
+
+    private String getAsciiString(String str) {
+        //Only allow valid ascii strings
+        return str.replaceAll( "\\P{ASCII}", "");
     }
 }

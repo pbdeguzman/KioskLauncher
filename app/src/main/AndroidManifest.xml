@@ -9,6 +9,7 @@
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
@@ -54,6 +55,7 @@
         <activity
             android:name="com.priv.upakiosk.PasswordActivity"
             android:screenOrientation="portrait"
+            android:launchMode="singleInstance"
             tools:ignore="LockedOrientationActivity" />
     </application>
 

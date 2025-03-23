@@ -68,11 +68,12 @@ public class MainActivity extends AppCompatActivity {
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
     final String SUPPORTED_APPS = "supported_apps.json";
-    final String DOWNLOADED_PARAM_FILENAME = "1-DLPARAM.TXT";
+    final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.TXT";
     final String UPA_APP = "com.global.integrated";
     final String filePath = RAW_DIR + File.separator + SUPPORTED_APPS;
 
     boolean permissionGranted = false;
+    final int MULTIPLE_PERMISSION_CODE = 9999;
     final int READ_EXTERNAL_STORAGE_CODE = 1000;
     final int WRITE_EXTERNAL_STORAGE_CODE = 1001;
     final int WRITE_SECURE_SETTINGS_CODE = 1002;
@@ -258,22 +259,6 @@ public class MainActivity extends AppCompatActivity {
         //disable the application's onBackPress
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == READ_EXTERNAL_STORAGE_CODE) {
-            // Checking whether user granted the permission or not.
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Showing the toast message
-                Toast.makeText(MainActivity.this, "Read Storage Permission Granted", Toast.LENGTH_SHORT).show();
-            }
-            else {
-                Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
-            }
-            setDefaultHomeScreen(getPackageName());
-        }
-    }
-
     public void onRequestPermissionsResultOld(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == WRITE_EXTERNAL_STORAGE_CODE) {
@@ -327,11 +312,29 @@ public class MainActivity extends AppCompatActivity {
      * a Request Permission
      */
     private void checkPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_EXTERNAL_STORAGE }, READ_EXTERNAL_STORAGE_CODE);
-            Log.d(TAG, "READ_EXTERNAL_STORAGE permission is not yet granted");
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE }, MULTIPLE_PERMISSION_CODE);
+            Log.d(TAG, "Permissions are not yet granted");
         } else {
-            Log.d(TAG, "READ_EXTERNAL_STORAGE permission is already granted");
+            Log.d(TAG, "Multiple permissions are already granted");
+            setDefaultHomeScreen(getPackageName());
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MULTIPLE_PERMISSION_CODE) {
+            // Checking whether user granted the permission or not.
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Showing the toast message
+                Toast.makeText(MainActivity.this, "Read Storage Permission Granted", Toast.LENGTH_SHORT).show();
+            }
+            else {
+                Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
+            }
             setDefaultHomeScreen(getPackageName());
         }
     }

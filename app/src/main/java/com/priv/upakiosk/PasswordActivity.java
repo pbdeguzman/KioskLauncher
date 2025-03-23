@@ -54,7 +54,6 @@ public class PasswordActivity extends AppCompatActivity {
         });
 
         initPasswordManager();
-
         initScreenTimeOutTimer();
     }
 
@@ -121,7 +120,6 @@ public class PasswordActivity extends AppCompatActivity {
 
     private void initPasswordManager() {
         passwordManager = new PasswordModule(this);
-        passwordManager.putString("MerchantNumber","777701451201");
     }
 
     private void initScreenTimeOutTimer() {
