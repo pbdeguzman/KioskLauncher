@@ -714,9 +714,17 @@ public class MainActivity extends AppCompatActivity {
      * Gesture: UP UP DOWN DOWN LEFT RIGHT LEFT RIGHT
      */
     private boolean openSettingsSequence() {
-        showSystemSettings(MainActivity.this);
+        if (BootReceiver.isPackageExisting(context, "com.ctos.systempanel")) {
+            PackageInfo packageInfo = new PackageInfo();
+            packageInfo.setPackageName("com.ctos.systempanel");
+            launchApp(packageInfo);
+        } else {
+            showSystemSettings(MainActivity.this);
+        }
         return false;
     }
+
+
 
     /**
      * Check the touch sequence
