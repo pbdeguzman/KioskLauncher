@@ -2,6 +2,7 @@ package com.priv.upakiosk;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -92,9 +93,11 @@ public class MainActivity extends AppCompatActivity {
     SettingsModule settings;
     UpdateModule update;
     DatabaseModule database;
-    private Handler handler, hHandler = new Handler(Looper.getMainLooper());
-    SharedPreferences prefs = null;
-    ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    Handler handler = new Handler();
+    Runnable runnable;
+
+    PasswordModule passwordModule;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,12 +128,14 @@ public class MainActivity extends AppCompatActivity {
             handler = new Handler(Looper.getMainLooper());
             handler.post(this::init);
             checkPermission();
+            enableKioskModeSettings();
         };
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
-        enableKioskModeSettings();
 
         mainLayout.setOnTouchListener(tapHandler);
+
+        PasswordModule.sharedPreferences = context.getSharedPreferences(this.context.getPackageName(), Activity.MODE_PRIVATE);;
     }
 
     private void init() {
@@ -320,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.d(TAG, "Multiple permissions are already granted");
             setDefaultHomeScreen(getPackageName());
+            //sendKioskReady();
         }
     }
 
@@ -336,6 +342,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Read Storage Permission Denied", Toast.LENGTH_SHORT).show();
             }
             setDefaultHomeScreen(getPackageName());
+            //sendKioskReady();
         }
     }
 
@@ -560,11 +567,11 @@ public class MainActivity extends AppCompatActivity {
             newInfo.setVersionName(p.versionName);
             newInfo.setVersionCode(p.versionCode);
             newInfo.setIcon(p.applicationInfo.loadIcon(getPackageManager()));
-            Log.d("KIOSK", "---------------");
-            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
-            Log.d("KIOSK", "Version Name: " + p.versionName);
-            Log.d("KIOSK", "Version Code: " + p.versionCode);
-            Log.d("KIOSK", "App Name: " + p.packageName);
+//            Log.d("KIOSK", "---------------");
+//            Log.d("KIOSK", "Package Name: " + p.applicationInfo.loadLabel(getPackageManager()).toString());
+//            Log.d("KIOSK", "Version Name: " + p.versionName);
+//            Log.d("KIOSK", "Version Code: " + p.versionCode);
+//            Log.d("KIOSK", "App Name: " + p.packageName);
             res.add(newInfo);
         }
         return res;
@@ -644,6 +651,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void launchApp(String packageName) {
+        Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+        startActivity(intent);
+    }
+
     /**
      * Set the UPA Kiosk Launcher to fullscreen
      */
@@ -660,7 +672,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "MainActivity - onResume");
+        checkIfDefaultHomeApp();
         fullscreen();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "MainActivity - onPause");
     }
 
     /**
@@ -773,7 +793,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableKioskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
     }
 
     private void disableKioskModeSettings() {
@@ -781,6 +801,7 @@ public class MainActivity extends AppCompatActivity {
 
         Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
         selectHomeApplication(this);
+        PasswordModule.putBoolean("isHomeApp", false);
     }
 
     private void setDefaultHomeScreenViaAdbCommand() {
@@ -789,7 +810,6 @@ public class MainActivity extends AppCompatActivity {
         //Process p = Runtime.getRuntime().exec(command, null, null);
         //p.getInputStream();
         try {
-
             Process process = new ProcessBuilder("settings","put","custom_launcher", "com.priv.upakiosk").start();
             process.getInputStream();
             //Process p = Runtime.getRuntime().exec("su");
@@ -848,6 +868,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setDefaultHomeScreen(String packageName) {
         if (!BootReceiver.isDefaultLauncher(getApplicationContext())) {
+            Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
             Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
             selectHomeApplication(this);
         } else {
@@ -864,12 +885,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void selectHomeApplication(Context context) {
-        context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
+        //context.getPackageManager().clearPackagePreferredActivities(context.getPackageName());
         PackageManager packageManager = context.getPackageManager();
         ComponentName componentName = new ComponentName(context, com.priv.upakiosk.FakeLauncher.class);
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
         showHomeScreen();
         packageManager.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, PackageManager.DONT_KILL_APP);
+    }
+
+    private void sendKioskReady() {
+        Log.d("sendKioskReady", "sendKioskReady sending ACTION_KIOSK_READY");
+        Intent intent = new Intent();
+        intent.setAction("global.intent.action.ACTION_KIOSK_READY");
+        context.sendBroadcast(intent);
     }
 
     private void openPasswordScreen() {
@@ -885,4 +913,50 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     );
+
+    private void checkIfDefaultHomeApp() {
+        if (isDefaultLauncher()) { //Check if Kiosk is the default home app
+            if (isHomeApp()) { //Save if Kiosk has been registered as home app
+                if (isFirstRun()) { //Save the isFirstRun flag
+                    Log.d("sendKioskReady", "checkIfDefaultHomeApp isHomeApp = true");
+                    sendKioskReady(); //Send this message once
+                }
+            }
+        }
+    }
+
+    private boolean isHomeApp() {
+        boolean isHomeApp = PasswordModule.getBoolean("isHomeApp", false);
+        Log.d("sendKioskReady", "isHomeApp() isHomeApp = " + isHomeApp);
+        if (!isHomeApp) PasswordModule.putBoolean("isHomeApp", true);
+        return isHomeApp;
+    }
+
+    private boolean isFirstRun() {
+        boolean isFirstRun = PasswordModule.getBoolean("isFirstRun", true);
+        Log.d("sendKioskReady", "isFirstRun() isFirstRun = " + isFirstRun);
+        if (isFirstRun) PasswordModule.putBoolean("isFirstRun", false);
+        return isFirstRun;
+    }
+
+    private boolean isDefaultLauncher() {
+        final IntentFilter filter = new IntentFilter(Intent.ACTION_MAIN);
+        filter.addCategory(Intent.CATEGORY_HOME);
+
+        List<IntentFilter> filters = new ArrayList<>();
+        filters.add(filter);
+
+        final String myPackageName = context.getPackageName();
+        List<ComponentName> activities = new ArrayList<>();
+        final PackageManager packageManager = context.getPackageManager();
+
+        packageManager.getPreferredActivities(filters, activities, null);
+
+        for (ComponentName activity : activities) {
+            if (myPackageName.equals(activity.getPackageName())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

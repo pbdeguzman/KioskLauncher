@@ -31,11 +31,10 @@ public class PasswordModule {
     final String RAW_DIR = "raw";
     final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.TXT";
     final String filePath = RAW_DIR + File.separator + DOWNLOADED_PARAM_FILENAME;
-    private final SharedPreferences sharedPreferences;
+    public static SharedPreferences sharedPreferences;
     Context context;
     public PasswordModule(Context context) {
         this.context = context;
-        this.sharedPreferences = context.getSharedPreferences(this.context.getPackageName(), Activity.MODE_PRIVATE);
         parseFile(filePath);
     }
 
@@ -104,13 +103,23 @@ public class PasswordModule {
         return merchantId;
     }
 
-    private String getString(String key, String defaultValue) {
+    public static String getString(String key, String defaultValue) {
         return sharedPreferences.getString(key, defaultValue);
     }
 
-    public void putString(String key, String value) {
+    public static void putString(String key, String value) {
         SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
         prefsEditor.putString(key, value);
+        prefsEditor.apply();
+    }
+
+    public static Boolean getBoolean(String key, Boolean defaultValue) {
+        return sharedPreferences.getBoolean(key, defaultValue);
+    }
+
+    public static void putBoolean(String key, Boolean value) {
+        SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
+        prefsEditor.putBoolean(key, value);
         prefsEditor.apply();
     }
 

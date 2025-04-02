@@ -55,7 +55,7 @@
         <activity
             android:name="com.priv.upakiosk.PasswordActivity"
             android:screenOrientation="portrait"
-            android:launchMode="singleInstance"
+            android:launchMode="singleTask"
             tools:ignore="LockedOrientationActivity" />
     </application>
 
