@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
             handler = new Handler(Looper.getMainLooper());
             handler.post(this::init);
             checkPermission();
-            enableKioskModeSettings();
+            enableTaskLockModeSettings();
         };
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
@@ -452,8 +452,8 @@ public class MainActivity extends AppCompatActivity {
      **/
     private void checkSpecialPermission() {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle(R.string.permission);
-        builder.setMessage(R.string.write_secure_settings);
+        builder.setTitle(getString(R.string.title_permission));
+        builder.setMessage("Allow WRITE_SECURE_SETTINGS permission to continue.");
         builder.setCancelable(false);
         builder.setIcon(android.R.drawable.ic_dialog_alert);
 
@@ -784,22 +784,21 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "touchSequence: " + touchSequence);
         }
 
-        if (touchSequence.contains(getString(R.string.OPEN_SETTING_SEQUENCE))) {
+        if (touchSequence.contains("UUDDLRLR")) {
             touchSequence = "";
             openSettingsSequence();
-        } else if (touchSequence.contains(getString(R.string.STANDARD_MODE_SEQUENCE))) {
+        } else if (touchSequence.contains("RLRLDDUU")) {
             openPasswordScreen();
         }
     }
 
-    private void enableKioskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(true);
+    private void enableTaskLockModeSettings() {
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
     }
 
-    private void disableKioskModeSettings() {
+    private void disableTaskLockModeSettings() {
         //Removed the default home app
-
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setKioskModeSettings(false);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
         selectHomeApplication(this);
         PasswordModule.putBoolean("isHomeApp", false);
     }
@@ -869,7 +868,7 @@ public class MainActivity extends AppCompatActivity {
     private void setDefaultHomeScreen(String packageName) {
         if (!BootReceiver.isDefaultLauncher(getApplicationContext())) {
             Log.d(TAG, "UPA Kiosk Launcher is not the default home screen");
-            Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeScreen(packageName);
+            Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setDefaultHomeApp(packageName);
             selectHomeApplication(this);
         } else {
             Log.d(TAG, "UPA Kiosk Launcher is the default home screen");
@@ -909,7 +908,7 @@ public class MainActivity extends AppCompatActivity {
         new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 touchSequence = "";
-                disableKioskModeSettings();
+                disableTaskLockModeSettings();
             }
         }
     );
