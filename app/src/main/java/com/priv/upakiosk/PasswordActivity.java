@@ -23,8 +23,7 @@ public class PasswordActivity extends AppCompatActivity {
 
     EditText etPassword;
     ImageButton btnClose;
-
-    int timeout = 30000;
+    int timeout = 300000;
     Handler handler = new Handler();
     Runnable runnable;
     PasswordModule passwordManager;
@@ -76,12 +75,13 @@ public class PasswordActivity extends AppCompatActivity {
     private void checkPassword(String password) {
         String secretPass = "0000";
         String pass = passwordManager.getAdminPwd();
+
         if (password.equals(pass) || password.equals(secretPass)) {
             setResult(RESULT_OK);
             this.finish();
         } else {
             stopScreenTimeOutTimer();
-            showDialogBox("Invalid Password\nPlease Re-Enter");
+            showDialogBox(getString(R.string.invalid_password));
         }
     }
 
@@ -106,7 +106,7 @@ public class PasswordActivity extends AppCompatActivity {
     private void showTimeoutDialogBox(String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(message);
-        builder.setTitle("Error");
+        builder.setTitle(getString(R.string.title_error));
         builder.setCancelable(false);
         builder.setIcon(R.drawable.exclamation);
 
@@ -124,7 +124,7 @@ public class PasswordActivity extends AppCompatActivity {
 
     private void initScreenTimeOutTimer() {
         runnable = () -> {
-            showTimeoutDialogBox("Timeout");
+            showTimeoutDialogBox(getString(R.string.timeout));
             stopScreenTimeOutTimer();
         };
         startScreenTimeOutTimer();

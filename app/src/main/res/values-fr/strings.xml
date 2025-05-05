@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">UPA Kiosque</string>
+    <string name="application_name">Nom De La Demande</string>
+    <string name="image_view_logo">Logo De Démarrage De La Vue d\'image</string>
+    <string name="accessibility_name">Service D\'accessibilité Du Kiosque De l\'UPA</string>
+    <string name="title_permission">Autorisation Requise.</string>
+    <string name="message_accessibility">Autoriser L\'autorisation D\'accessibilité Pour Continuer.</string>
+    <string name="upa_kiosk_accessibility_description">Afind\'optimiser votre expérience et de garantir le bon fonctionnement
+        de la borne UPA, nous vous demandons de bien vouloir nous fournir les autorisations
+        d\'accessibilité nécessaires. Ces autorisations sont essentielles pour activer les
+        fonctionnalités clés et sont essentielles pour offrir une expérience utilisateur sécurisée et fluide.
+    </string>
+    <string name="ok">OK</string>
+    <string name="title_activity_admin">Admin</string>
+    <string name="enter_password">Entrez Le Mot De Passe</string>
+    <string name="invalid_password">Invalide Veuillez\nEntrer De Nouveau</string>
+    <string name="timeout">Timeout</string>
+    <string name="restart_terminal">Veuillez redémarrer l\'appareil pour profiter pleinement de la fonction Kiosque</string>
+    <string name="title_error">Erreur</string>
+</resources>

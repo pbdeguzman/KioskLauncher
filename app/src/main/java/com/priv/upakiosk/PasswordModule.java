@@ -20,6 +20,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Properties;
@@ -29,7 +31,9 @@ import java.util.Set;
 public class PasswordModule {
     static final String TAG = "UPA KIOSK";
     final String RAW_DIR = "raw";
-    final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.TXT";
+    final String DOWNLOADED_PARAM_FILENAME = "1-DLPARAM.TXT";
+    final String KIOSK_PASSWORD_KEY = "KioskPassword";
+    final String MERCHANT_NUMBER_KEY = "MerchantNumber";
     final String filePath = RAW_DIR + File.separator + DOWNLOADED_PARAM_FILENAME;
     public static SharedPreferences sharedPreferences;
     Context context;
@@ -39,29 +43,20 @@ public class PasswordModule {
     }
 
     public String getAdminPwd() {
-        String merchantId = getMerchantNumber();
+        String adminPwd = getString(KIOSK_PASSWORD_KEY, "");
 
-        final int MNUMLENGTH = 6;
-        String xxx = Integer.toString(getCurrentDayOfYear() * 2);
-        final String defaultMNUM = "123456789012";
-        Calendar calendar = Calendar.getInstance();
-        int y = calendar.get(Calendar.YEAR);
-        String yy = Integer.toString(y);
-        int m = calendar.get(Calendar.MONTH) + 1;
-        String mm = Integer.toString(m);
-        int d = calendar.get(Calendar.DAY_OF_MONTH);
-        String dd = Integer.toString(d);
-        y = Integer.parseInt(yy.substring(yy.length() - 1));
-        m = Integer.parseInt(mm.substring(mm.length() - 1));
-        d = Integer.parseInt(dd.substring(dd.length() - 1));
-        String dym = Integer.toString(d) + Integer.toString(y) + Integer.toString(m);
-        String xxxdym = xxx + dym;
-        String mnum = (merchantId != null && merchantId.length() < MNUMLENGTH) ? defaultMNUM : merchantId;
-        String zzzzzz = mnum.substring(mnum.length() - 6);
-        int result = Integer.parseInt(xxxdym) + Integer.parseInt(zzzzzz);
-        String adminPwd = String.valueOf(result % 1000000);
-        adminPwd = formatToFixDigitNum(adminPwd, 6);
+        if (adminPwd.isEmpty()) {
+            adminPwd = generateInitialPassword();
+        }
         return adminPwd;
+    }
+
+    private String generateInitialPassword() {
+        String result = Integer.toString(getCurrentDayOfYear() * 2);
+        while (result.length() < 3) {
+            result = String.format("0%s", result);
+        }
+        return result;
     }
 
     public int getCurrentDayOfYear() {
@@ -75,6 +70,36 @@ public class PasswordModule {
             days += d.getActualMaximum(Calendar.DAY_OF_MONTH);
         }
         return days;
+    }
+
+    public String generateAdminPwd() {
+        String adminPwd = getString(KIOSK_PASSWORD_KEY, "");
+
+        if (adminPwd.isEmpty()) {
+            String merchantId = getMerchantNumber();
+
+            final int MNUMLENGTH = 6;
+            String xxx = Integer.toString(getCurrentDayOfYear() * 2);
+            final String defaultMNUM = "123456789012";
+            Calendar calendar = Calendar.getInstance();
+            int y = calendar.get(Calendar.YEAR);
+            String yy = Integer.toString(y);
+            int m = calendar.get(Calendar.MONTH) + 1;
+            String mm = Integer.toString(m);
+            int d = calendar.get(Calendar.DAY_OF_MONTH);
+            String dd = Integer.toString(d);
+            y = Integer.parseInt(yy.substring(yy.length() - 1));
+            m = Integer.parseInt(mm.substring(mm.length() - 1));
+            d = Integer.parseInt(dd.substring(dd.length() - 1));
+            String dym = Integer.toString(d) + Integer.toString(y) + Integer.toString(m);
+            String xxxdym = xxx + dym;
+            String mnum = (merchantId != null && merchantId.length() < MNUMLENGTH) ? defaultMNUM : merchantId;
+            String zzzzzz = mnum.substring(mnum.length() - 6);
+            int result = Integer.parseInt(xxxdym) + Integer.parseInt(zzzzzz);
+            adminPwd = String.valueOf(result % 1000000);
+            adminPwd = formatToFixDigitNum(adminPwd, 6);
+        }
+        return adminPwd;
     }
 
     public String formatToFixDigitNum(String num, int fixedLen) {
@@ -92,7 +117,7 @@ public class PasswordModule {
     private static int multiMerchantIndex;
 
     public String getMerchantNumber() {
-        String merchantId = getString("MerchantNumber", null);
+        String merchantId = getString(MERCHANT_NUMBER_KEY, null);
         if (isMultiMerchantSupported) {
             merchantId = merchantIdSplitVal.get(multiMerchantIndex);
         } else {
@@ -121,51 +146,6 @@ public class PasswordModule {
         SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
         prefsEditor.putBoolean(key, value);
         prefsEditor.apply();
-    }
-
-    /**
-     * Read file that consists of data
-     * @param context
-     * @param filePath
-     * @return
-     */
-    public static String readFile(Context context, String filePath) {
-        Log.d(TAG, "start readTextFile()");
-        String fileData = null;
-        int len;
-        byte[] buffer;
-        InputStream stream = null;
-        String dataFilePath = context.getFilesDir() + File.separator;
-        String supportedFile = dataFilePath + filePath;
-
-        try {
-            // Open file
-            if (new File(supportedFile).exists()) {
-                stream = new FileInputStream(new File(supportedFile));
-            } else {
-                stream = context.getAssets().open(filePath);
-            }
-            len = stream.available();
-            buffer = new byte[len];
-            // Read the file and set it to buffer
-            stream.read(buffer);
-
-            // set the buffer to fileData string
-            fileData = new String(buffer);
-
-        } catch (IOException err) {
-            Log.d(TAG,"error: " + err.getMessage());
-        } finally {
-            // Close the file
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    Log.d(TAG,"error: "+e.getMessage());
-                }
-            }
-        }
-        return fileData;
     }
 
     private String scanFile(Context context, String fileName) {
@@ -215,9 +195,23 @@ public class PasswordModule {
                 reader = new BufferedReader(new InputStreamReader(context.getAssets().open(fileName), StandardCharsets.UTF_8));
             }
             properties = loadPropertiesFile(reader);
-            String temp = properties.getProperty("MerchantNumber");
-            String merchantNumber = temp .trim().replaceAll("^[\"]|[\"]$", "");
-            putString("MerchantNumber", merchantNumber);
+
+            String tempProperty = properties.getProperty(MERCHANT_NUMBER_KEY);
+            if (tempProperty != null) {
+                String merchantNumber = properties.getProperty(MERCHANT_NUMBER_KEY).trim().replaceAll("^[\"]|[\"]$", "");
+                if (!merchantNumber.isEmpty()) {
+                    putString(MERCHANT_NUMBER_KEY, merchantNumber);
+                }
+            }
+
+            tempProperty = properties.getProperty(KIOSK_PASSWORD_KEY);
+            if (tempProperty != null) {
+                String kioskPassword = properties.getProperty(KIOSK_PASSWORD_KEY, "").trim().replaceAll("^[\"]|[\"]$", "");
+                if (!kioskPassword.isEmpty()) {
+                    putString(KIOSK_PASSWORD_KEY, kioskPassword);
+                }
+            }
+
         } catch (IOException err) {
             Log.d(TAG, "Error: " + err.getMessage());
             return STATUS_INVALID_UPDATE_FILE;
@@ -254,4 +248,6 @@ public class PasswordModule {
         //Only allow valid ascii strings
         return str.replaceAll( "\\P{ASCII}", "");
     }
+
 }
+

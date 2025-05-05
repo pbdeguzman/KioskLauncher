@@ -1,15 +1,19 @@
 <resources>
     <string name="app_name">UPA Kiosk</string>
-    <string name="nav_open">Open</string>
-    <string name="nav_close">Close</string>
-    <string name="permission">Permission required</string>
-    <string name="write_secure_settings">Allow WRITE_SECURE_SETTINGS permission to continue.</string>
-    <string name="OPEN_SETTING_SEQUENCE">UUDDLRLR</string>
-    <string name="STANDARD_MODE_SEQUENCE">RLRLDDUU</string>
-    <string name="change_default_home_dialog_proceed">Proceed</string>
-    <string name="change_default_home_dialog_cancel">Cancel</string>
-    <string name="change_default_home_dialog_body_settings_tts">TTS</string>
-    <string name="change_default_home_dialog_body_settings">Please set the UPA Kiosk Launcher as you default home screen. \n\nDo you want to continue?</string>
-    <string name="change_default_home_dialog_body">Dialog Body</string>
-    <string name="enter_password">Enter password</string>
+    <string name="application_name">Application Name</string>
+    <string name="image_view_logo">Image view splash logo</string>
+    <string name="accessibility_name">UPA Kiosk Accessibility Service</string>
+    <string name="title_permission">Permission required.</string>
+    <string name="message_accessibility">Allow Accessibility permission to continue.</string>
+    <string name="upa_kiosk_accessibility_description">To optimize your experience and guarantee
+        the complete functionality of UPA Kiosk, we kindly ask for Accessibility permissions.
+        These permissions are essential for enabling key features and are integral to delivering a
+        secure and smooth user experience.</string>
+    <string name="ok">OK</string>
+    <string name="title_activity_admin">Admin</string>
+    <string name="enter_password">Enter Password</string>
+    <string name="invalid_password">Invalid Password,\nPlease Re-Enter.</string>
+    <string name="timeout">Timeout</string>
+    <string name="restart_terminal">Please restart the device to take full effect of the Kiosk feature</string>
+    <string name="title_error">Error</string>
 </resources>

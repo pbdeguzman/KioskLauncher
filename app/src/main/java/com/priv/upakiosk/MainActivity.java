@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
     final String SUPPORTED_APPS = "supported_apps.json";
-    final String DOWNLOADED_PARAM_FILENAME = "DLPARAM.TXT";
+    final String DOWNLOADED_PARAM_FILENAME = "1-DLPARAM.TXT";
     final String UPA_APP = "com.global.integrated";
     final String filePath = RAW_DIR + File.separator + SUPPORTED_APPS;
 
@@ -128,7 +128,6 @@ public class MainActivity extends AppCompatActivity {
             handler = new Handler(Looper.getMainLooper());
             handler.post(this::init);
             checkPermission();
-            enableTaskLockModeSettings();
         };
         platform.registerCallback(iFbPlatformCallback);
         platform.initialize(platformMap);
@@ -794,6 +793,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void enableTaskLockModeSettings() {
         Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
+        if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
+           //Toast.makeText(context,returnMap.get(com.global.cl.platform.PlatformKey.ErrorText).toString(),Toast.LENGTH_SHORT).show();
+            showDialogBox(getString(R.string.restart_terminal));
+        }
     }
 
     private void disableTaskLockModeSettings() {
@@ -801,6 +804,11 @@ public class MainActivity extends AppCompatActivity {
         Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
         selectHomeApplication(this);
         PasswordModule.putBoolean("isHomeApp", false);
+
+        if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
+            showDialogBox(getString(R.string.restart_terminal));
+            //Toast.makeText(context,returnMap.get(com.global.cl.platform.PlatformKey.ErrorText).toString(),Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void setDefaultHomeScreenViaAdbCommand() {
@@ -920,6 +928,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("sendKioskReady", "checkIfDefaultHomeApp isHomeApp = true");
                     sendKioskReady(); //Send this message once
                 }
+                enableTaskLockModeSettings();
             }
         }
     }

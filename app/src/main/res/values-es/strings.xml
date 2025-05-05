@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">UPA Quiosco</string>
+    <string name="application_name">Nombre De La Aplicación</string>
+    <string name="image_view_logo">Logotipo De Bienvenida De Bista De Imagen</string>
+    <string name="accessibility_name">Servicio De Accesibilidad Del Quiosco De La UPA</string>
+    <string name="title_permission">Se Requiere Permiso.</string>
+    <string name="message_accessibility">Permitir Permiso De Accesibilidad Para Continuar.</string>
+    <string name="upa_kiosk_accessibility_description">Para optimizar su experiencia y garantizar la funcionalidad completa de UPA Kiosk,
+        le solicitamos permisos de accesibilidad. Estos permisos son esenciales para habilitar
+        funciones clave y son fundamentales para ofrecer una experiencia de usuario segura y fluida.</string>
+    <string name="ok">OK</string>
+    <string name="title_activity_admin">Admin</string>
+    <string name="enter_password">Ingrese La Contraseña</string>
+    <string name="invalid_password">Contraseña Inválida\nPor Favor Reingresa</string>
+    <string name="timeout">Timeout</string>
+    <string name="restart_terminal">Reinicie el dispositivo para aprovechar al máximo la función Kiosco</string>
+    <string name="title_error">Error</string>
+</resources>
