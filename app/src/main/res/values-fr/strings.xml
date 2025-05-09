@@ -15,7 +15,7 @@
     <string name="enter_password">Entrez Le Mot De Passe</string>
     <string name="invalid_password">Invalide Veuillez\nEntrer De Nouveau</string>
     <string name="timeout">Timeout</string>
-    <string name="restart_device">L\'Appareil Redémarrera Pour Activer Le Mode De Verrouillage Des Tâches</string>
-    <string name="switch_to_standard">Le Passage En Mode Standard Nécessitera Un Redémarrage Du Terminal Pour Désactiver Le Mode De Tâche De Verrouillage</string>
+    <string name="restart_device">L\'Appareil Redémarrera Pour Activer Le Mode Kiosque</string>
+    <string name="switch_to_standard">Le Passage Au Mode Standard Nécessitera Un Redémarrage Du Terminal Pour Désactiver Le Mode Kiosque</string>
     <string name="title_error">Erreur</string>
 </resources>
