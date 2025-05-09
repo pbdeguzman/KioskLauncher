@@ -6,12 +6,15 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,21 +61,25 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int READ_SUCCESS = 99; // internal status if ParseFile() succeeds
+    private static final int STATUS_INVALID_UPDATE_FILE = 7;
 
     static final String TAG = "UPA KIOSK";
     private static final int MAX_CHAR_LIMIT = 100;
     final String BAT_FILE = "permission.bat";
     final String RAW_DIR = "raw";
+    public static SharedPreferences sharedPreferences;
     final String SUPPORTED_APPS = "supported_apps.json";
     final String DOWNLOADED_PARAM_FILENAME = "1-DLPARAM.TXT";
-    final String UPA_APP = "com.global.integrated";
+    public static final String KIOSK_PASSWORD_KEY = "KioskPassword";
+    final String DEFAULT_LANGUAGE_KEY = "DefaultLanguage";
+    String KIOSK_DEFAULT_LANGUAGE = "en";
+    final String DLPARAM_PATH = RAW_DIR + File.separator + DOWNLOADED_PARAM_FILENAME;
     final String filePath = RAW_DIR + File.separator + SUPPORTED_APPS;
-
     boolean permissionGranted = false;
     final int MULTIPLE_PERMISSION_CODE = 9999;
     final int READ_EXTERNAL_STORAGE_CODE = 1000;
@@ -133,17 +140,45 @@ public class MainActivity extends AppCompatActivity {
         platform.initialize(platformMap);
 
         mainLayout.setOnTouchListener(tapHandler);
-
-        PasswordModule.sharedPreferences = context.getSharedPreferences(this.context.getPackageName(), Activity.MODE_PRIVATE);;
     }
 
+    final String nFileName = "filename";
+    final String paramsMapFileName = "paramsMap.json";
+    final String settingsMasterFileName = "settings_master.json";
+    final String nConfig = "config";
+
     private void init() {
-        update = UpdateModule.getInstance(this.context);
         database = new DatabaseModule(context);
         settings = new SettingsModule(context, database);
+        settings.initialize(settingsMasterFileName, nConfig);
+
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put(nFileName, paramsMapFileName);
+            settings.setParamsMap(jsonObject.toString());
+        } catch (JSONException | IOException e) {
+            Log.d(TAG, e.getMessage());
+        }
+
+        update = UpdateModule.getInstance(this.context);
+        update.registerAppPackageName();
         huds = new HudsModule(context, settings, update);
-        huds.registerCallback(str -> {loadSupportedApps();});
+        boolean hasNewParams = huds.checkNewParameters(true);
+        if (hasNewParams) {
+            getDataDLPARAM();
+        }
+        huds.registerCallback(str -> {
+            loadSupportedApps();
+        });
         checkForUpdates();
+    }
+
+    private void getDataDLPARAM() {
+        String kioskPassword = settings.getConfig(KIOSK_PASSWORD_KEY);
+        putString(KIOSK_PASSWORD_KEY, kioskPassword);
+        String defaultLanguage = settings.getConfig(DEFAULT_LANGUAGE_KEY);
+        putString(DEFAULT_LANGUAGE_KEY, defaultLanguage);
+        reload();
     }
 
     private void autoLaunchApp(String packageName) {
@@ -163,10 +198,10 @@ public class MainActivity extends AppCompatActivity {
             fileList.put("DestDir", "raw");
             udsList.put(fileList);
 
-            fileList = new JSONObject();
-            fileList.put("File", DOWNLOADED_PARAM_FILENAME);
-            fileList.put("DestDir", "raw");
-            udsList.put(fileList);
+//            fileList = new JSONObject();
+//            fileList.put("File", DOWNLOADED_PARAM_FILENAME);
+//            fileList.put("DestDir", "raw");
+//            udsList.put(fileList);
 
             JSONObject jsonFile = new JSONObject();
             jsonFile.put("File", udsList);
@@ -791,23 +826,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void enableTaskLockModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
+    private void enableLockTaskModeSettings() {
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setLockTaskModeSettings(true);
         if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
-           //Toast.makeText(context,returnMap.get(com.global.cl.platform.PlatformKey.ErrorText).toString(),Toast.LENGTH_SHORT).show();
-            showDialogBox(getString(R.string.restart_terminal));
+            //showDialogBox(getString(R.string.restart_kiosk_mode));
         }
     }
 
-    private void disableTaskLockModeSettings() {
+    private void disableLockTaskModeSettings() {
         //Removed the default home app
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setTaskLockModeSettings(false);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setLockTaskModeSettings(false);
         selectHomeApplication(this);
-        PasswordModule.putBoolean("isHomeApp", false);
+        putBoolean("isHomeApp", false);
 
         if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
-            showDialogBox(getString(R.string.restart_terminal));
-            //Toast.makeText(context,returnMap.get(com.global.cl.platform.PlatformKey.ErrorText).toString(),Toast.LENGTH_SHORT).show();
+            //showDialogBox(getString(R.string.restart_standard_mode));
         }
     }
 
@@ -916,7 +949,7 @@ public class MainActivity extends AppCompatActivity {
         new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK) {
                 touchSequence = "";
-                disableTaskLockModeSettings();
+                disableLockTaskModeSettings();
             }
         }
     );
@@ -928,22 +961,22 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("sendKioskReady", "checkIfDefaultHomeApp isHomeApp = true");
                     sendKioskReady(); //Send this message once
                 }
-                enableTaskLockModeSettings();
+                enableLockTaskModeSettings();
             }
         }
     }
 
     private boolean isHomeApp() {
-        boolean isHomeApp = PasswordModule.getBoolean("isHomeApp", false);
+        boolean isHomeApp = sharedPreferences.getBoolean("isHomeApp", false);
         Log.d("sendKioskReady", "isHomeApp() isHomeApp = " + isHomeApp);
-        if (!isHomeApp) PasswordModule.putBoolean("isHomeApp", true);
+        if (!isHomeApp) putBoolean("isHomeApp", true);
         return isHomeApp;
     }
 
     private boolean isFirstRun() {
-        boolean isFirstRun = PasswordModule.getBoolean("isFirstRun", true);
+        boolean isFirstRun = sharedPreferences.getBoolean("isFirstRun", true);
         Log.d("sendKioskReady", "isFirstRun() isFirstRun = " + isFirstRun);
-        if (isFirstRun) PasswordModule.putBoolean("isFirstRun", false);
+        if (isFirstRun) putBoolean("isFirstRun", false);
         return isFirstRun;
     }
 
@@ -966,5 +999,118 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return false;
+    }
+
+    private static ContextWrapper changeLanguage(Context context, String langCode){
+        Locale sysLocale;
+
+        Resources rs = context.getResources();
+        Configuration config = rs.getConfiguration();
+
+        sysLocale = config.getLocales().get(0);
+        if (!langCode.equals("") && !sysLocale.getLanguage().equals(langCode)) {
+            Locale locale = new Locale(langCode);
+            Locale.setDefault(locale);
+            config.setLocale(locale);
+            context = context.createConfigurationContext(config);
+        }
+
+        return new ContextWrapper(context);
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        sharedPreferences = newBase.getSharedPreferences(newBase.getPackageName(), Activity.MODE_PRIVATE);
+        String defaultLanguage = sharedPreferences.getString(DEFAULT_LANGUAGE_KEY, KIOSK_DEFAULT_LANGUAGE);
+        context = changeLanguage(newBase, defaultLanguage);
+        super.attachBaseContext(context);
+    }
+
+//    private int parseFile(String fileName) {
+//        String dataFilePath = context.getFilesDir() + File.separator;
+//        String filePath = dataFilePath + fileName;
+//        Properties properties;
+//
+//        BufferedReader reader = null;
+//        try {
+//            if (new File(filePath).exists()) {
+//                reader = new BufferedReader(new InputStreamReader(Files.newInputStream(Paths.get(filePath)), StandardCharsets.UTF_8));
+//            } else {
+//                reader = new BufferedReader(new InputStreamReader(context.getAssets().open(fileName), StandardCharsets.UTF_8));
+//            }
+//            properties = loadPropertiesFile(reader);
+//
+//            String tempProperty = properties.getProperty(DEFAULT_LANGUAGE_KEY);
+//            if (tempProperty != null) {
+//                String defaultLanguage = properties.getProperty(DEFAULT_LANGUAGE_KEY, KIOSK_DEFAULT_LANGUAGE).trim().replaceAll("^[\"]|[\"]$", "");
+//                if (!defaultLanguage.isEmpty()) {
+//                    putString(DEFAULT_LANGUAGE_KEY, defaultLanguage);
+//                }
+//            }
+//
+//            tempProperty = properties.getProperty(KIOSK_PASSWORD_KEY);
+//            if (tempProperty != null) {
+//                String kioskPassword = properties.getProperty(KIOSK_PASSWORD_KEY, "").trim().replaceAll("^[\"]|[\"]$", "");
+//                if (!kioskPassword.isEmpty()) {
+//                    putString(KIOSK_PASSWORD_KEY, kioskPassword);
+//                }
+//            }
+//
+//        } catch (IOException err) {
+//            Log.d(TAG, "Error: " + err.getMessage());
+//            return STATUS_INVALID_UPDATE_FILE;
+//        } finally {
+//            if (reader != null) {
+//                try {
+//                    reader.close();
+//                } catch (IOException e) {
+//                    Log.d(TAG, "Error: " + e.getMessage());
+//                }
+//            }
+//        }
+//
+//        return READ_SUCCESS;
+//    }
+//
+//    private Properties loadPropertiesFile(BufferedReader reader){
+//        Properties properties = new Properties();
+//        String str;
+//        try {
+//            while ((str = reader.readLine()) != null) {
+//                String key = getAsciiString(str.split("=", 2)[0]);
+//                String value = getAsciiString(str.split("=", 2)[1]);
+//
+//                properties.setProperty(key, value);
+//            }
+//        } catch (IOException e) {
+//            Log.d(TAG, "error: " + e.getMessage() );
+//        }
+//        return properties;
+//    }
+//
+//    private String getAsciiString(String str) {
+//        //Only allow valid ascii strings
+//        return str.replaceAll( "\\P{ASCII}", "");
+//    }
+
+    public static void putBoolean(String key, Boolean value) {
+        SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
+        prefsEditor.putBoolean(key, value);
+        prefsEditor.apply();
+    }
+
+    public static void putString(String key, String value) {
+        SharedPreferences.Editor prefsEditor = sharedPreferences.edit();
+        prefsEditor.putString(key, value);
+        prefsEditor.apply();
+    }
+
+    public void reload() {
+        Intent intent = getIntent();
+        overridePendingTransition(0, 0);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+        finish();
+        overridePendingTransition(0, 0);
+        startActivity(intent);
     }
 }

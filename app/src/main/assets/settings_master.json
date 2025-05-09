@@ -1,0 +1,35 @@
+{
+	"cfgMISCELLANEOUS": {
+		"icon": "zmdi-settings",
+		"items": [{
+			"ParmName": "KioskPassword",
+			"Description": "Password to exit the Kiosk mode.",
+			"ViewPrint": "YES",
+			"Edit": "H",
+			"EditReboot": "YES",
+			"Type": "X0-256",
+			"Default": "",
+			"Updatable": "YES"
+		},
+		{
+			"ParmName": "DefaultLanguage",
+			"Description": "The default language used by the application for display.",
+			"ViewPrint": "YES",
+			"Edit": "H",
+			"EditReboot": "YES",
+			"Type": "X2",
+			"Default": "en",
+			"Updatable": "YES"
+		},
+		{
+			"ParmName": "NewParametersAvailable",
+			"Description": "Indicates to the application that new parameters are available.",
+			"ViewPrint": "YES",
+			"Edit": "H",
+			"EditReboot": "YES",
+			"Type": "B1",
+			"Default": "1",
+			"Updatable": "YES"
+		}]
+	}
+}

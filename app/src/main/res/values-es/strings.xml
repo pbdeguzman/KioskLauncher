@@ -13,6 +13,7 @@
     <string name="enter_password">Ingrese La Contraseña</string>
     <string name="invalid_password">Contraseña Inválida\nPor Favor Reingresa</string>
     <string name="timeout">Timeout</string>
-    <string name="restart_terminal">Reinicie el dispositivo para aprovechar al máximo la función Kiosco</string>
+    <string name="restart_device">El Dispositivo Se Reiniciará Para Habilitar El Modo De Bloqueo De Tareas</string>
+    <string name="switch_to_standard">Para Cambiar Al Modo Estándar Será Necesario Reiniciar La Terminal Para Deshabilitar El Modo De Bloqueo De Tareas.</string>
     <string name="title_error">Error</string>
 </resources>

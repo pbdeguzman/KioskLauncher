@@ -14,6 +14,7 @@
     <string name="enter_password">Enter Password</string>
     <string name="invalid_password">Invalid Password,\nPlease Re-Enter.</string>
     <string name="timeout">Timeout</string>
-    <string name="restart_terminal">Please restart the device to take full effect of the Kiosk feature</string>
+    <string name="restart_device">The Device Will Restart To Enable Lock Task Mode</string>
+    <string name="switch_to_standard">Switching To Standard Mode Will Require A Terminal Reboot To Disable The Lock Task Mode</string>
     <string name="title_error">Error</string>
 </resources>
