@@ -15,6 +15,7 @@ import android.content.pm.ResolveInfo;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -164,21 +165,22 @@ public class MainActivity extends AppCompatActivity {
         update.registerAppPackageName();
         huds = new HudsModule(context, settings, update);
         boolean hasNewParams = huds.checkNewParameters(true);
-        if (hasNewParams) {
-            getDataDLPARAM();
-        }
+        getDataDLPARAM(hasNewParams);
+
         huds.registerCallback(str -> {
             loadSupportedApps();
         });
         checkForUpdates();
     }
 
-    private void getDataDLPARAM() {
+    private void getDataDLPARAM(boolean hasNewParams) {
         String kioskPassword = settings.getConfig(KIOSK_PASSWORD_KEY);
         putString(KIOSK_PASSWORD_KEY, kioskPassword);
         String defaultLanguage = settings.getConfig(DEFAULT_LANGUAGE_KEY);
         putString(DEFAULT_LANGUAGE_KEY, defaultLanguage);
-        reload();
+        if (hasNewParams) {
+            reload();
+        }
     }
 
     private void autoLaunchApp(String packageName) {
@@ -827,7 +829,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void enableLockTaskModeSettings() {
-        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setLockTaskModeSettings(true);
+        Map<com.global.cl.platform.PlatformKey, Object> returnMap = platform.setLockTaskModeSettings(false);
         if (returnMap.get(com.global.cl.platform.PlatformKey.ErrorCode) == PlatformError.RESTART_REQUIRED) {
             //showDialogBox(getString(R.string.restart_kiosk_mode));
         }
@@ -1007,12 +1009,17 @@ public class MainActivity extends AppCompatActivity {
         Resources rs = context.getResources();
         Configuration config = rs.getConfiguration();
 
-        sysLocale = config.getLocales().get(0);
-        if (!langCode.equals("") && !sysLocale.getLanguage().equals(langCode)) {
-            Locale locale = new Locale(langCode);
-            Locale.setDefault(locale);
-            config.setLocale(locale);
-            context = context.createConfigurationContext(config);
+        Locale locale = new Locale(langCode);
+        Locale.setDefault(locale);
+        config.setLocale(locale);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            sysLocale = config.getLocales().get(0);
+            if (!langCode.equals("") && !sysLocale.getLanguage().equals(langCode)) {
+                context = context.createConfigurationContext(config);
+            }
+        } else {
+            rs.updateConfiguration(config, rs.getDisplayMetrics());
         }
 
         return new ContextWrapper(context);
