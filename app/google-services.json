@@ -1,0 +1,120 @@
+{
+  "project_info": {
+    "project_number": "503108254873",
+    "project_id": "pid-gousgnad-mega-mt-upa-4b01",
+    "storage_bucket": "pid-gousgnad-mega-mt-upa-4b01.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503108254873:android:4b17a199919fad880d0c08",
+        "android_client_info": {
+          "package_name": "com.global.integrated"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwufyZk_OoJWLew3HTF_GiLo7uNW68hVg"
+        },
+        {
+          "current_key": "AIzaSyANbJWzLH1XEFjqcpu0VufgxZP8tbbi3qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503108254873:android:53871aa779c491550d0c08",
+        "android_client_info": {
+          "package_name": "com.global.upaflex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwufyZk_OoJWLew3HTF_GiLo7uNW68hVg"
+        },
+        {
+          "current_key": "AIzaSyANbJWzLH1XEFjqcpu0VufgxZP8tbbi3qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503108254873:android:a1c5ab421e62d1ea0d0c08",
+        "android_client_info": {
+          "package_name": "com.global.wwca"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwufyZk_OoJWLew3HTF_GiLo7uNW68hVg"
+        },
+        {
+          "current_key": "AIzaSyANbJWzLH1XEFjqcpu0VufgxZP8tbbi3qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503108254873:android:13a6ffa3d144ac770d0c08",
+        "android_client_info": {
+          "package_name": "com.priv.global.launcher"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwufyZk_OoJWLew3HTF_GiLo7uNW68hVg"
+        },
+        {
+          "current_key": "AIzaSyANbJWzLH1XEFjqcpu0VufgxZP8tbbi3qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503108254873:android:7726374f8ce1cc500d0c08",
+        "android_client_info": {
+          "package_name": "com.priv.verifone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwufyZk_OoJWLew3HTF_GiLo7uNW68hVg"
+        },
+        {
+          "current_key": "AIzaSyANbJWzLH1XEFjqcpu0VufgxZP8tbbi3qc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

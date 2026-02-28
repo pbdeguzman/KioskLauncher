@@ -1,6 +1,9 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.firebase.crashlytics'
 }
+
+apply plugin: "com.google.gms.google-services"
 
 def propertiesFile = rootProject.file('app/keys.properties')
 def keyProperties = new Properties()
@@ -41,6 +44,10 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+            }
+            testCoverageEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.debug
             versionNameSuffix ".release"
@@ -49,6 +56,10 @@ android {
         debug {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules-debug.pro'
             minifyEnabled false
+            firebaseCrashlytics {
+                mappingFileUploadEnabled false
+            }
+
             testCoverageEnabled true
             signingConfig signingConfigs.debug
             versionNameSuffix ".debug"
@@ -56,6 +67,9 @@ android {
 
         devt {
             minifyEnabled true
+            firebaseCrashlytics {
+                mappingFileUploadEnabled true
+            }
             testCoverageEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules-devt.pro'
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -123,6 +137,25 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
+    //Firebase Logging
+    implementation ('com.google.firebase:firebase-firestore:25.1.4') {
+        exclude group: "com.squareup.okhttp"
+    }
+
+    implementation platform('com.google.firebase:firebase-bom:32.2.3')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-core:21.1.1'
+
+    if (findProject(':Log_Module')) {
+        api project(':Log_Module')
+    } else {
+        debugImplementation 'com.global.fb.log:Log_Module-debug:1.0@aar'
+        devtImplementation 'com.global.fb.log:Log_Module-devt:1.0@aar'
+        releaseImplementation 'com.global.fb.log:Log_Module-release:1.0@aar'
+    }
+    //////////////////////////////////////////////////////////////////
+
     if (findProject(':Platform_Module')) {
         api project(':Platform_Module')
     } else {
@@ -189,6 +222,8 @@ dependencies {
         devtImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-devt:1.0@aar'
         releaseImplementation 'com.global.encryptedSharedPreferences:EncryptedSharedPreferences-release:1.0@aar'
     }
+
+
 }
 
 allprojects {

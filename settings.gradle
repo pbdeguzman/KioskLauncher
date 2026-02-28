@@ -30,6 +30,8 @@ include ':Platform_Module'
 project(':Platform_Module').projectDir = new File('submodules/fb/Platform_Module')
 include ':HUDS_Module'
 project(':HUDS_Module').projectDir = new File('submodules/fb/Huds_Module')
+include ':Log_Module'
+project(':Log_Module').projectDir = new File('submodules/fb/Log_Module')
 //include 'Update_Module'
 //project(':Update_Module').projectDir = new File('submodules/fb/Update_Module')
 //include 'Settings_Module'
